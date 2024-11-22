@@ -1,1 +1,1 @@
-web: gunicorn domitory.wsgi
+web: gunicorn domitory.wsgi --log-file -
