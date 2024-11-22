@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,7 +16,7 @@ SECRET_KEY = 'django-insecure-4p138slz#f1jmhd^%a4l#s_onsdin_i&l%=&8pdeitm7n7i#8c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['domitory.herokuapp.com']
 
 
 # Application definition
@@ -84,15 +85,9 @@ WSGI_APPLICATION = 'domitory.wsgi.application'
 #}
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'your_db_name'),
-        'USER': os.getenv('DB_USER', 'your_db_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'your_db_password'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+    'default': dj_database_url.config(default='postgres://u37a6hgauh32c1:p4f44747a330c2388f28a332962bdd08d5c0fbb360d24948eda1ec6dd9f9463d4@c3gtj1dt5vh48j.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d3142eb66a7au2')
 }
+
 
 
 # Password validation
