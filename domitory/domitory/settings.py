@@ -79,7 +79,10 @@ WSGI_APPLICATION = 'domitory.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # Ensure BASE_DIR is correctly defined
+    }
 }
 
 
@@ -122,7 +125,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 # Это нужно для Heroku, чтобы она могла хранить и обслуживать статические файлы
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
+STATICFILES_DIRS = [BASE_DIR / "static"]
 django_heroku.settings(locals())
 
 # Default primary key field type
