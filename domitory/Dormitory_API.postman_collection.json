@@ -1,0 +1,953 @@
+{
+	"info": {
+		"name": "Dormitory API v1",
+		"description": "Full API collection for Dormitory Management System.\n\n**Setup:**\n1. Run \"Auth / Login\" first — tokens auto-save to variables\n2. All other requests use Bearer token automatically\n\n**Default credentials:**\n- Email: admin@dormitory.uz\n- Password: admin123456",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{"key": "base_url", "value": "http://127.0.0.1:8000/api/v1"},
+		{"key": "access_token", "value": ""},
+		{"key": "refresh_token", "value": ""},
+		{"key": "org_id", "value": ""},
+		{"key": "building_id", "value": ""},
+		{"key": "floor_id", "value": ""},
+		{"key": "room_id", "value": ""},
+		{"key": "room2_id", "value": ""},
+		{"key": "resident_id", "value": ""},
+		{"key": "contract_id", "value": ""},
+		{"key": "assignment_id", "value": ""},
+		{"key": "tariff_id", "value": ""},
+		{"key": "charge_id", "value": ""},
+		{"key": "payment_id", "value": ""},
+		{"key": "user_id", "value": ""}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [{"key": "token", "value": "{{access_token}}"}]
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.access) {",
+									"    pm.collectionVariables.set('access_token', json.access);",
+									"    pm.collectionVariables.set('refresh_token', json.refresh);",
+									"    pm.collectionVariables.set('user_id', json.user_id);",
+									"    pm.test('Login successful', function() { pm.response.to.have.status(200); });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"url": "{{base_url}}/auth/login/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@dormitory.uz\",\n    \"password\": \"admin123456\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.access) {",
+									"    pm.collectionVariables.set('access_token', json.access);",
+									"    if (json.refresh) pm.collectionVariables.set('refresh_token', json.refresh);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"url": "{{base_url}}/auth/refresh/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Me (current user)",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/auth/me/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "List Users",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/users/"
+					}
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/users/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"manager@dormitory.uz\",\n    \"full_name\": \"Dorm Manager\",\n    \"password\": \"manager123\",\n    \"role\": 3,\n    \"organization\": \"{{org_id}}\",\n    \"phone_number\": \"+998901112233\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/users/{{user_id}}/"
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/users/{{user_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"Updated Name\",\n    \"is_active\": true\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Organizations",
+			"item": [
+				{
+					"name": "List Organizations",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('org_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/organizations/"
+					}
+				},
+				{
+					"name": "Create Organization",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/organizations/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Tashkent State University\",\n    \"short_name\": \"TSU\",\n    \"org_type\": \"university\",\n    \"contact_email\": \"info@tsu.uz\",\n    \"contact_phone\": \"+998712345678\",\n    \"address\": \"Tashkent, Uzbekistan\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Organization",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/organizations/{{org_id}}/"
+					}
+				},
+				{
+					"name": "Update Organization",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/organizations/{{org_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"address\": \"Updated address\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Buildings",
+			"item": [
+				{
+					"name": "List Buildings",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('building_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/buildings/?is_active=true",
+							"host": ["{{base_url}}"],
+							"path": ["buildings", ""],
+							"query": [{"key": "is_active", "value": "true"}]
+						}
+					}
+				},
+				{
+					"name": "Create Building",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('building_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/buildings/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization\": \"{{org_id}}\",\n    \"name\": \"Building A\",\n    \"address\": \"Main campus, building 1\",\n    \"gender_policy\": \"mixed\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Building",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/buildings/{{building_id}}/"
+					}
+				},
+				{
+					"name": "Update Building",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/buildings/{{building_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_active\": true\n}"
+						}
+					}
+				},
+				{
+					"name": "Delete Building",
+					"request": {
+						"method": "DELETE",
+						"url": "{{base_url}}/buildings/{{building_id}}/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Floors",
+			"item": [
+				{
+					"name": "List Floors",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('floor_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/floors/?building={{building_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["floors", ""],
+							"query": [{"key": "building", "value": "{{building_id}}"}]
+						}
+					}
+				},
+				{
+					"name": "Create Floor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('floor_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/floors/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"building\": \"{{building_id}}\",\n    \"number\": 1,\n    \"description\": \"First floor\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Rooms",
+			"item": [
+				{
+					"name": "List Rooms",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('room_id', json.results[0].id);",
+									"    if (json.results.length > 1) pm.collectionVariables.set('room2_id', json.results[1].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/rooms/?building={{building_id}}&status=available",
+							"host": ["{{base_url}}"],
+							"path": ["rooms", ""],
+							"query": [
+								{"key": "building", "value": "{{building_id}}"},
+								{"key": "status", "value": "available"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Room",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('room_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/rooms/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"floor\": \"{{floor_id}}\",\n    \"room_number\": \"101\",\n    \"capacity\": 4,\n    \"gender_policy\": \"mixed\",\n    \"monthly_price\": \"500000.00\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Room",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/rooms/{{room_id}}/"
+					}
+				},
+				{
+					"name": "Available Rooms",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/rooms/available/"
+					}
+				},
+				{
+					"name": "Update Room",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/rooms/{{room_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"maintenance\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Residents",
+			"item": [
+				{
+					"name": "List Residents",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('resident_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/residents/?status=active&search=",
+							"host": ["{{base_url}}"],
+							"path": ["residents", ""],
+							"query": [
+								{"key": "status", "value": "active"},
+								{"key": "search", "value": ""}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Resident",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('resident_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/residents/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization\": \"{{org_id}}\",\n    \"full_name\": \"Aliyev Jasur\",\n    \"birth_date\": \"2003-05-15\",\n    \"gender\": \"male\",\n    \"phone_number\": \"+998901234567\",\n    \"email\": \"jasur@mail.uz\",\n    \"university_id\": \"STU-001\",\n    \"faculty\": \"Computer Science\",\n    \"course\": 2,\n    \"notes\": \"\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Resident (detail)",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/residents/{{resident_id}}/"
+					}
+				},
+				{
+					"name": "Update Resident",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/residents/{{resident_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"course\": 3,\n    \"phone_number\": \"+998907654321\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Guardians",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/residents/{{resident_id}}/guardians/"
+					}
+				},
+				{
+					"name": "Add Guardian",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/residents/{{resident_id}}/guardians/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"Aliyev Karim\",\n    \"relationship\": \"father\",\n    \"phone_number\": \"+998901112233\",\n    \"is_emergency_contact\": true\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Documents",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/residents/{{resident_id}}/documents/"
+					}
+				},
+				{
+					"name": "Upload Document",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/residents/{{resident_id}}/documents/",
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{"key": "document_type", "value": "passport", "type": "text"},
+								{"key": "document_number", "value": "AA1234567", "type": "text"},
+								{"key": "file", "type": "file", "src": ""}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Balance",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/residents/{{resident_id}}/balance/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Contracts",
+			"item": [
+				{
+					"name": "List Contracts",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('contract_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/contracts/?status=active",
+							"host": ["{{base_url}}"],
+							"path": ["contracts", ""],
+							"query": [{"key": "status", "value": "active"}]
+						}
+					}
+				},
+				{
+					"name": "Create Contract",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('contract_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/contracts/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resident\": \"{{resident_id}}\",\n    \"building\": \"{{building_id}}\",\n    \"contract_number\": \"C-2026-001\",\n    \"start_date\": \"2026-03-01\",\n    \"end_date\": \"2027-03-01\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Get Contract (detail)",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/contracts/{{contract_id}}/"
+					}
+				},
+				{
+					"name": "Terminate Contract",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/contracts/{{contract_id}}/terminate/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Assignments",
+			"item": [
+				{
+					"name": "List Assignments",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('assignment_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/assignments/?status=active",
+							"host": ["{{base_url}}"],
+							"path": ["assignments", ""],
+							"query": [{"key": "status", "value": "active"}]
+						}
+					}
+				},
+				{
+					"name": "Assign to Room",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('assignment_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/assignments/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contract\": \"{{contract_id}}\",\n    \"resident\": \"{{resident_id}}\",\n    \"room\": \"{{room_id}}\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Transfer to another Room",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/assignments/{{assignment_id}}/transfer/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"new_room\": \"{{room2_id}}\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Evict (close assignment)",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/assignments/{{assignment_id}}/close/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Stay Records",
+			"item": [
+				{
+					"name": "List Stay Records",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/stay-records/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Tariffs",
+			"item": [
+				{
+					"name": "List Tariffs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.results && json.results.length > 0) {",
+									"    pm.collectionVariables.set('tariff_id', json.results[0].id);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/tariffs/"
+					}
+				},
+				{
+					"name": "Create Tariff",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('tariff_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/tariffs/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization\": \"{{org_id}}\",\n    \"name\": \"Standard Monthly\",\n    \"amount\": \"500000.00\",\n    \"billing_period\": \"monthly\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Update Tariff",
+					"request": {
+						"method": "PATCH",
+						"url": "{{base_url}}/tariffs/{{tariff_id}}/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": \"550000.00\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Charges",
+			"item": [
+				{
+					"name": "List Charges",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/charges/?resident={{resident_id}}&status=pending",
+							"host": ["{{base_url}}"],
+							"path": ["charges", ""],
+							"query": [
+								{"key": "resident", "value": "{{resident_id}}"},
+								{"key": "status", "value": "pending"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Single Charge",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/charges/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resident\": \"{{resident_id}}\",\n    \"tariff_plan\": \"{{tariff_id}}\",\n    \"period_month\": 3,\n    \"period_year\": 2026,\n    \"amount\": \"500000.00\",\n    \"due_date\": \"2026-03-25\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Generate Monthly Charges (bulk)",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/charges/generate/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"tariff_plan\": \"{{tariff_id}}\",\n    \"month\": 4,\n    \"year\": 2026\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "List Payments",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/payments/?resident={{resident_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["payments", ""],
+							"query": [
+								{"key": "resident", "value": "{{resident_id}}"}
+							]
+						}
+					}
+				},
+				{
+					"name": "Record Payment (auto FIFO)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.id) pm.collectionVariables.set('payment_id', json.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/payments/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resident\": \"{{resident_id}}\",\n    \"amount\": \"500000.00\",\n    \"payment_date\": \"2026-03-16\",\n    \"payment_method\": \"cash\",\n    \"notes\": \"March payment\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Discounts",
+			"item": [
+				{
+					"name": "List Discounts",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/discounts/"
+					}
+				},
+				{
+					"name": "Create Discount",
+					"request": {
+						"method": "POST",
+						"url": "{{base_url}}/discounts/",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"resident\": \"{{resident_id}}\",\n    \"discount_type\": \"percentage\",\n    \"value\": \"10.00\",\n    \"reason\": \"Scholarship student\",\n    \"start_date\": \"2026-03-01\",\n    \"end_date\": \"2026-12-31\"\n}"
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "Summary (dashboard)",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/reports/summary/"
+					}
+				},
+				{
+					"name": "Occupancy by Building",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reports/occupancy/?building={{building_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "occupancy", ""],
+							"query": [{"key": "building", "value": "{{building_id}}", "disabled": true}]
+						}
+					}
+				},
+				{
+					"name": "Available Rooms",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reports/available-rooms/?gender=male",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "available-rooms", ""],
+							"query": [{"key": "gender", "value": "male", "disabled": true}]
+						}
+					}
+				},
+				{
+					"name": "Debtors",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/reports/debtors/"
+					}
+				},
+				{
+					"name": "Payments Report",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reports/payments/?date_from=2026-03-01&date_to=2026-03-31",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "payments", ""],
+							"query": [
+								{"key": "date_from", "value": "2026-03-01"},
+								{"key": "date_to", "value": "2026-03-31"},
+								{"key": "method", "value": "cash", "disabled": true}
+							]
+						}
+					}
+				},
+				{
+					"name": "Residents Report",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/reports/residents/?status=active",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "residents", ""],
+							"query": [
+								{"key": "status", "value": "active"},
+								{"key": "faculty", "value": "", "disabled": true},
+								{"key": "gender", "value": "", "disabled": true}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Audit",
+			"item": [
+				{
+					"name": "List Audit Logs",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/audit/?action=create&model_name=Payment",
+							"host": ["{{base_url}}"],
+							"path": ["audit", ""],
+							"query": [
+								{"key": "action", "value": "create", "disabled": true},
+								{"key": "model_name", "value": "Payment", "disabled": true},
+								{"key": "date_from", "value": "2026-03-01", "disabled": true},
+								{"key": "date_to", "value": "2026-03-31", "disabled": true}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

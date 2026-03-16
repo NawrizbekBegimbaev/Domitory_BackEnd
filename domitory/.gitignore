@@ -1,4 +1,25 @@
-venv/
+# Python
 *.pyc
 *.pyo
 __pycache__/
+*.egg-info/
+venv/
+.venv/
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
