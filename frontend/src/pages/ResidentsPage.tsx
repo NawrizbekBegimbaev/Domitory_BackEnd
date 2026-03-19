@@ -35,41 +35,41 @@ export default function ResidentsPage() {
 
   const columns = [
     {
-      key: 'avatar',
-      label: '',
-      className: 'w-10',
-      render: (r: Resident) => (
-        r.photo ? (
-          <img src={r.photo} alt="" style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: '50%', objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: '50%' }} className="bg-accent/20 text-accent flex items-center justify-center text-xs font-bold">
-            {getInitials(r.full_name)}
-          </div>
-        )
-      ),
-    },
-    {
       key: 'full_name',
       label: t('fullName'),
       render: (r: Resident) => (
-        <div>
-          <div className="font-medium">{r.full_name}</div>
-          <div className="text-xs text-text-muted">{r.email}</div>
+        <div className="flex items-center gap-3">
+          {r.photo ? (
+            <img src={r.photo} alt="" style={{ width: 36, height: 36, minWidth: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: 36, height: 36, minWidth: 36, borderRadius: '50%' }} className="bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">
+              {getInitials(r.full_name)}
+            </div>
+          )}
+          <div>
+            <div className="font-medium text-white">{r.full_name}</div>
+            <div className="text-xs text-text-muted">{r.university_id}</div>
+          </div>
         </div>
       ),
     },
-    { key: 'university_id', label: t('studentId') },
-    { key: 'faculty', label: t('faculty') },
+    { key: 'faculty', label: t('faculty'), render: (r: Resident) => <span className="text-text-secondary">{r.faculty || '—'}</span> },
     {
       key: 'status',
       label: t('status'),
       render: (r: Resident) => (
-        <span className={`text-sm font-medium ${statusColors[r.status] || ''}`}>
+        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+          r.status === 'active' ? 'bg-green-500/10 text-green-400' :
+          r.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+          r.status === 'evicted' ? 'bg-red-500/10 text-red-400' :
+          'bg-blue-500/10 text-blue-400'
+        }`}>
           {getStatusLabel(r.status, t)}
         </span>
       ),
     },
-    { key: 'phone_number', label: t('phone') },
+    { key: 'phone_number', label: t('phone'), render: (r: Resident) => <span className="text-text-secondary font-mono text-xs">{r.phone_number || '—'}</span> },
+    { key: 'course', label: t('course'), render: (r: Resident) => <span className="text-text-secondary">{r.course || '—'}</span> },
   ]
 
   return (

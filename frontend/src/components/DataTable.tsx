@@ -21,11 +21,11 @@ export default function DataTable<T extends { id?: string }>({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-dark-border">
+          <tr className="border-b border-dark-border bg-dark-bg/50">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`text-left text-xs text-text-muted font-medium uppercase tracking-wider py-3 px-4 ${col.className || ''}`}
+                className={`text-left text-[11px] text-text-muted font-semibold uppercase tracking-wider py-3.5 px-4 ${col.className || ''}`}
               >
                 {col.label}
               </th>
@@ -35,7 +35,7 @@ export default function DataTable<T extends { id?: string }>({
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="text-center py-12 text-text-muted">
+              <td colSpan={columns.length} className="text-center py-16 text-text-muted text-sm">
                 {emptyText}
               </td>
             </tr>
@@ -44,12 +44,12 @@ export default function DataTable<T extends { id?: string }>({
               <tr
                 key={item.id || i}
                 onClick={() => onRowClick?.(item)}
-                className={`border-b border-dark-border/50 ${
-                  onRowClick ? 'cursor-pointer hover:bg-dark-hover' : ''
-                } transition-colors`}
+                className={`border-b border-dark-border/30 ${
+                  onRowClick ? 'cursor-pointer hover:bg-accent/5' : ''
+                } transition-all duration-150`}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`py-3 px-4 text-sm ${col.className || ''}`}>
+                  <td key={col.key} className={`py-3.5 px-4 text-sm ${col.className || ''}`}>
                     {col.render
                       ? col.render(item)
                       : (item as Record<string, unknown>)[col.key] as ReactNode}

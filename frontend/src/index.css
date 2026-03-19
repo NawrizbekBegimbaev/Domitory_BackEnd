@@ -58,6 +58,15 @@ input[type="number"] {
   }
 }
 
+/* Better table styling */
+tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
 /* Responsive: tables scroll horizontally on mobile */
 @media (max-width: 1023px) {
   table {

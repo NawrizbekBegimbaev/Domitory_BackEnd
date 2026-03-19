@@ -34,27 +34,40 @@ export default function ContractsPage() {
   const totalPages = Math.ceil(data.count / 20)
 
   const columns = [
-    { key: 'contract_number', label: t('contractNumber') },
+    {
+      key: 'contract_number',
+      label: t('contractNumber'),
+      render: (c: Contract) => <span className="font-mono text-accent text-xs">{c.contract_number}</span>,
+    },
     {
       key: 'resident_name',
       label: t('resident'),
-      render: (c: Contract) => c.resident_name || c.resident,
+      render: (c: Contract) => <span className="font-medium">{c.resident_name || c.resident}</span>,
+    },
+    {
+      key: 'building_name',
+      label: t('building'),
+      render: (c: Contract) => <span className="text-text-secondary">{c.building_name || '—'}</span>,
     },
     {
       key: 'start_date',
       label: t('startDate'),
-      render: (c: Contract) => formatDate(c.start_date),
+      render: (c: Contract) => <span className="text-text-secondary">{formatDate(c.start_date)}</span>,
     },
     {
       key: 'end_date',
       label: t('endDate'),
-      render: (c: Contract) => formatDate(c.end_date),
+      render: (c: Contract) => <span className="text-text-secondary">{formatDate(c.end_date)}</span>,
     },
     {
       key: 'status',
       label: t('status'),
       render: (c: Contract) => (
-        <span className={`font-medium ${statusColors[c.status]}`}>
+        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+          c.status === 'active' ? 'bg-green-500/10 text-green-400' :
+          c.status === 'terminated' ? 'bg-red-500/10 text-red-400' :
+          'bg-gray-500/10 text-gray-400'
+        }`}>
           {getStatusLabel(c.status, t)}
         </span>
       ),

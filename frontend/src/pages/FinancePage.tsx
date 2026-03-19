@@ -24,29 +24,39 @@ export default function FinancePage() {
     {
       key: 'payment_date',
       label: t('paymentDate'),
-      render: (p: Payment) => formatDate(p.payment_date),
+      render: (p: Payment) => <span className="text-text-secondary">{formatDate(p.payment_date)}</span>,
     },
     {
       key: 'resident_name',
       label: t('resident'),
-      render: (p: Payment) => p.resident_name || '—',
+      render: (p: Payment) => <span className="font-medium">{p.resident_name || '—'}</span>,
     },
     {
       key: 'amount',
       label: t('paymentAmount'),
       render: (p: Payment) => (
-        <span className={`font-medium ${parseFloat(p.amount) < 0 ? 'text-red-400' : 'text-green-400'}`}>{formatMoney(p.amount)} UZS</span>
+        <span className={`font-bold tabular-nums ${parseFloat(p.amount) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+          {parseFloat(p.amount) > 0 ? '+' : ''}{formatMoney(p.amount)} <span className="text-text-muted font-normal text-xs">UZS</span>
+        </span>
       ),
     },
     {
       key: 'payment_method',
       label: t('paymentMethod'),
-      render: (p: Payment) => p.payment_method === 'cash' ? t('paymentCash') : t('paymentTransfer'),
+      render: (p: Payment) => (
+        <span className="text-xs px-2 py-1 rounded-full bg-dark-bg text-text-secondary">
+          {p.payment_method === 'cash' ? t('paymentCash') : t('paymentTransfer')}
+        </span>
+      ),
     },
     {
       key: 'status',
       label: t('status'),
-      render: (p: Payment) => getStatusLabel(p.status, t),
+      render: (p: Payment) => (
+        <span className="text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 font-medium">
+          {getStatusLabel(p.status, t)}
+        </span>
+      ),
     },
     {
       key: 'recorded_by_name',
