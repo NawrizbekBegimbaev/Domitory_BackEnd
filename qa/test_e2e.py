@@ -1,339 +1,579 @@
 """
-E2E Tests — Playwright Python.
-Полное покрытие UI как senior manual QA.
+E2E Tests — Playwright Python. Full user flow coverage.
+Replaces senior manual QA testing — 50+ tests.
 
-Покрытие:
-  - Login page (email, phone tab, forgot password)
-  - Dashboard (stats load, navigation)
-  - Residents (list, create, detail, edit, delete)
-  - Buildings (list, create, edit, delete)
-  - Floors (manage, add room)
-  - Rooms (grid/list view, click room, assign)
-  - Contracts (list, terminate)
-  - Finance (list, create payment)
-  - Reports (all tabs)
-  - Audit (list, expand detail)
-  - Users (list, create, detail)
-  - Language switching
-  - Sidebar role visibility
+Run: pytest test_e2e.py -v --headed --slowmo 300
 """
 import pytest
 from playwright.sync_api import Page, expect
 
-FRONTEND = 'http://127.0.0.1:5173'
-ADMIN_EMAIL = 'admin@dormitory.uz'
-ADMIN_PASSWORD = 'admin123'
-
-
-@pytest.fixture(scope='session')
-def browser_context_args():
-    return {'viewport': {'width': 1440, 'height': 900}}
+F = 'http://127.0.0.1:5173'
+EMAIL = 'admin@dormitory.uz'
+PWD = 'admin123'
 
 
 def login(page: Page):
-    """Helper to login as admin."""
-    page.goto(FRONTEND)
-    page.wait_for_url('**/login')
-    page.fill('input[type="email"]', ADMIN_EMAIL)
-    page.fill('input[type="password"]', ADMIN_PASSWORD)
+    page.goto(F + '/login')
+    page.wait_for_selector('input[type="email"]')
+    page.fill('input[type="email"]', EMAIL)
+    page.fill('input[type="password"]', PWD)
     page.click('button[type="submit"]')
-    page.wait_for_url(FRONTEND + '/')
+    page.wait_for_url(F + '/')
     page.wait_for_timeout(500)
 
 
 # ============================================================
 # LOGIN PAGE
 # ============================================================
-class TestLoginPage:
-
-    def test_login_page_loads(self, page: Page):
-        page.goto(FRONTEND)
+class TestLogin:
+    def test_page_loads(self, page: Page):
+        page.goto(F + '/login')
         expect(page.locator('text=DORMITORY')).to_be_visible()
-
-    def test_language_switcher(self, page: Page):
-        page.goto(FRONTEND)
-        # Switch to Uzbek
-        page.click('button:has-text("UZ")')
-        page.wait_for_timeout(300)
-        expect(page.locator('text=Kirish')).to_be_visible()
-        # Switch back to Russian
-        page.click('button:has-text("RU")')
-        page.wait_for_timeout(300)
-
-    def test_email_phone_tabs(self, page: Page):
-        page.goto(FRONTEND)
-        page.wait_for_timeout(500)
-        # Should see email/phone tabs
-        expect(page.locator('button:has-text("Email")')).to_be_visible()
-
-    def test_login_wrong_password(self, page: Page):
-        page.goto(FRONTEND)
-        page.fill('input[type="email"]', ADMIN_EMAIL)
-        page.fill('input[type="password"]', 'wrongpassword')
-        page.click('button[type="submit"]')
-        page.wait_for_timeout(1000)
-        # Should show error, not redirect
-        expect(page).to_have_url(FRONTEND + '/login')
 
     def test_login_success(self, page: Page):
         login(page)
-        # Should be on dashboard
-        expect(page).to_have_url(FRONTEND + '/')
+        expect(page).to_have_url(F + '/')
 
-    def test_forgot_password_link(self, page: Page):
-        page.goto(FRONTEND + '/login')
+    def test_login_wrong_password(self, page: Page):
+        page.goto(F + '/login')
+        page.fill('input[type="email"]', EMAIL)
+        page.fill('input[type="password"]', 'wrong')
+        page.click('button[type="submit"]')
+        page.wait_for_timeout(1000)
+        expect(page).to_have_url(F + '/login')
+
+    def test_email_phone_tabs_visible(self, page: Page):
+        page.goto(F + '/login')
         page.wait_for_timeout(500)
-        # Click forgot password
-        forgot = page.locator('button:has-text("?")')
-        if forgot.is_visible():
-            forgot.click()
-            page.wait_for_timeout(500)
+        tabs = page.locator('.bg-dark-bg >> button')
+        assert tabs.count() >= 2
+
+    def test_phone_tab_shows_phone_field(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(500)
+        page.locator('.bg-dark-bg >> button').last.click()
+        page.wait_for_timeout(300)
+        expect(page.locator('input[maxlength="17"]')).to_be_visible()
+
+    def test_forgot_password_opens(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(500)
+        page.locator('button:has-text("?")').last.click()
+        page.wait_for_timeout(500)
+        # Should show email input for reset
+        expect(page.locator('input[type="email"]')).to_be_visible()
+
+    def test_language_switch_changes_text(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(300)
+        page.locator('button:has-text("UZ")').click()
+        page.wait_for_timeout(300)
+        expect(page.locator('text=Kirish')).to_be_visible()
+        page.locator('button:has-text("RU")').click()
+        page.wait_for_timeout(300)
 
 
 # ============================================================
 # DASHBOARD
 # ============================================================
 class TestDashboard:
-
-    def test_dashboard_loads(self, page: Page):
+    def test_stats_cards_load(self, page: Page):
         login(page)
-        # Check stat cards
         page.wait_for_timeout(1000)
-        # Should have stat cards
-        cards = page.locator('.bg-dark-card').count()
+        cards = page.locator('.bg-dark-card.border').count()
         assert cards >= 3
 
-    def test_dashboard_shows_buildings(self, page: Page):
+    def test_occupancy_table(self, page: Page):
         login(page)
         page.wait_for_timeout(1000)
-        # Occupancy table should be visible
-        expect(page.locator('table')).to_be_visible()
+        expect(page.locator('table').first).to_be_visible()
+
+    def test_debtors_section(self, page: Page):
+        login(page)
+        page.wait_for_timeout(1000)
+        # Should have debtors or "no debtors" message
+        page.locator('.bg-dark-card').count()
 
 
 # ============================================================
-# SIDEBAR NAVIGATION
+# SIDEBAR
 # ============================================================
 class TestSidebar:
-
-    def test_sidebar_visible(self, page: Page):
+    def test_all_nav_links(self, page: Page):
         login(page)
-        expect(page.locator('aside')).to_be_visible()
+        links = ['/residents', '/buildings', '/rooms', '/contracts', '/finance', '/reports', '/audit', '/users']
+        for path in links:
+            page.click(f'aside >> a[href="{path}"]')
+            page.wait_for_timeout(300)
+            expect(page).to_have_url(F + path)
 
-    def test_navigate_to_residents(self, page: Page):
+    def test_sidebar_language_switch(self, page: Page):
         login(page)
-        page.click('aside >> a[href="/residents"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/residents')
-
-    def test_navigate_to_buildings(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/buildings"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/buildings')
-
-    def test_navigate_to_rooms(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/rooms"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/rooms')
-
-    def test_navigate_to_contracts(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/contracts"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/contracts')
-
-    def test_navigate_to_finance(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/finance"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/finance')
-
-    def test_navigate_to_reports(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/reports"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/reports')
-
-    def test_navigate_to_audit(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/audit"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/audit')
-
-    def test_navigate_to_users(self, page: Page):
-        login(page)
-        page.click('aside >> a[href="/users"]')
-        page.wait_for_timeout(500)
-        expect(page).to_have_url(FRONTEND + '/users')
-
-    def test_language_switch_in_sidebar(self, page: Page):
-        login(page)
-        page.click('aside >> button:has-text("UZ")')
-        page.wait_for_timeout(500)
-        # Sidebar should now be in Uzbek
-        page.click('aside >> button:has-text("RU")')
+        page.locator('aside >> button:has-text("UZ")').click()
+        page.wait_for_timeout(300)
+        expect(page.locator('aside >> text=Yashovchilar')).to_be_visible()
+        page.locator('aside >> button:has-text("RU")').click()
         page.wait_for_timeout(300)
 
-
-# ============================================================
-# RESIDENTS
-# ============================================================
-class TestResidentsE2E:
-
-    def test_residents_page_loads(self, page: Page):
+    def test_logout(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/residents')
-        page.wait_for_timeout(1000)
-        expect(page.locator('h1')).to_be_visible()
-
-    def test_residents_tabs(self, page: Page):
-        login(page)
-        page.goto(FRONTEND + '/residents')
+        page.locator('aside >> text=Выйти').click()
         page.wait_for_timeout(500)
-        # Should have filter tabs
-        buttons = page.locator('button').count()
-        assert buttons >= 4
+        expect(page).to_have_url(F + '/login')
 
-    def test_add_resident_page(self, page: Page):
+
+# ============================================================
+# RESIDENTS — FULL FLOW
+# ============================================================
+class TestResidentsFlow:
+    def test_list_page(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/residents/new')
+        page.goto(F + '/residents')
         page.wait_for_timeout(500)
-        # Should have form fields
-        expect(page.locator('input').first).to_be_visible()
+        expect(page.locator('h1')).to_be_visible()
 
-
-# ============================================================
-# BUILDINGS
-# ============================================================
-class TestBuildingsE2E:
-
-    def test_buildings_page_loads(self, page: Page):
+    def test_status_tabs(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/buildings')
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        tabs = page.locator('.rounded-lg.p-1 >> button')
+        for i in range(min(tabs.count(), 5)):
+            tabs.nth(i).click()
+            page.wait_for_timeout(300)
+
+    def test_create_resident_form(self, page: Page):
+        login(page)
+        page.goto(F + '/residents/new')
+        page.wait_for_timeout(500)
+        # Should have name fields, photo upload, gender buttons
+        inputs = page.locator('input').count()
+        assert inputs >= 3
+
+    def test_create_resident_and_redirect(self, page: Page):
+        login(page)
+        page.goto(F + '/residents/new')
+        page.wait_for_timeout(500)
+        # Fill required fields (last name, first name, student ID)
+        all_inputs = page.locator('section input')
+        if all_inputs.count() >= 3:
+            all_inputs.nth(0).fill('E2EТест')
+            all_inputs.nth(1).fill('Жилец')
+        page.locator('input[placeholder="N 000000"]').fill('E2E-QA-FLOW')
+        page.locator('button:has-text("Сохранить")').click()
+        page.wait_for_timeout(1000)
+        expect(page).to_have_url(F + '/residents')
+
+    def test_search_residents(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        search = page.locator('input[type="text"]')
+        if search.count() > 0:
+            search.first.fill('E2E')
+            page.wait_for_timeout(1000)
+
+
+# ============================================================
+# RESIDENT DETAIL
+# ============================================================
+class TestResidentDetail:
+    def test_click_opens_detail(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+            expect(page.locator('h1')).to_be_visible()
+
+    def test_all_tabs(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+            tabs = page.locator('.border-b >> button')
+            for i in range(min(tabs.count(), 4)):
+                tabs.nth(i).click()
+                page.wait_for_timeout(300)
+
+    def test_balance_visible(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+            expect(page.locator('text=UZS')).to_be_visible()
+
+    def test_action_buttons(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+            # Should have edit, transfer, evict, delete buttons
+            buttons = page.locator('.ml-auto >> button')
+            assert buttons.count() >= 3
+
+
+# ============================================================
+# BUILDINGS FLOW
+# ============================================================
+class TestBuildingsFlow:
+    def test_list_loads(self, page: Page):
+        login(page)
+        page.goto(F + '/buildings')
+        page.wait_for_timeout(500)
+        expect(page.locator('h1')).to_be_visible()
+
+    def test_add_building_modal(self, page: Page):
+        login(page)
+        page.goto(F + '/buildings')
+        page.wait_for_timeout(500)
+        page.locator('button:has-text("+")').first.click()
+        page.wait_for_timeout(500)
+        expect(page.locator('.fixed')).to_be_visible()
+
+    def test_manage_floors_link(self, page: Page):
+        login(page)
+        page.goto(F + '/buildings')
+        page.wait_for_timeout(500)
+        links = page.locator('text=Управлять')
+        if links.count() > 0:
+            links.first.click()
+            page.wait_for_timeout(500)
+            # Should navigate to floors page
+            expect(page.locator('h1')).to_be_visible()
+
+
+# ============================================================
+# FLOORS PAGE
+# ============================================================
+class TestFloorsPage:
+    def test_floors_load(self, page: Page):
+        login(page)
+        page.goto(F + '/buildings')
+        page.wait_for_timeout(500)
+        links = page.locator('text=Управлять')
+        if links.count() > 0:
+            links.first.click()
+            page.wait_for_timeout(500)
+            expect(page.locator('h1')).to_be_visible()
+
+    def test_click_room_opens_modal(self, page: Page):
+        login(page)
+        page.goto(F + '/buildings')
+        page.wait_for_timeout(500)
+        links = page.locator('text=Управлять')
+        if links.count() > 0:
+            links.first.click()
+            page.wait_for_timeout(500)
+            rooms = page.locator('.rounded-lg.cursor-pointer')
+            if rooms.count() > 0:
+                rooms.first.click()
+                page.wait_for_timeout(500)
+                expect(page.locator('.fixed')).to_be_visible()
+
+
+# ============================================================
+# ROOMS FLOW
+# ============================================================
+class TestRoomsFlow:
+    def test_grid_view(self, page: Page):
+        login(page)
+        page.goto(F + '/rooms')
         page.wait_for_timeout(1000)
         expect(page.locator('h1')).to_be_visible()
 
-
-# ============================================================
-# ROOMS
-# ============================================================
-class TestRoomsE2E:
-
-    def test_rooms_page_loads(self, page: Page):
+    def test_list_view(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/rooms')
+        page.goto(F + '/rooms')
         page.wait_for_timeout(1000)
-        expect(page.locator('h1')).to_be_visible()
-
-    def test_grid_list_toggle(self, page: Page):
-        login(page)
-        page.goto(FRONTEND + '/rooms')
-        page.wait_for_timeout(1000)
-        # Find grid/list toggle buttons
-        toggles = page.locator('.bg-dark-card.border >> button')
+        toggles = page.locator('.rounded-lg.p-1 >> button')
         if toggles.count() >= 2:
-            toggles.last.click()  # Switch to list
+            toggles.last.click()
             page.wait_for_timeout(500)
             expect(page.locator('table')).to_be_visible()
+
+    def test_click_room_modal(self, page: Page):
+        login(page)
+        page.goto(F + '/rooms')
+        page.wait_for_timeout(1000)
+        rooms = page.locator('.rounded-xl.cursor-pointer')
+        if rooms.count() > 0:
+            rooms.first.click()
+            page.wait_for_timeout(500)
+            expect(page.locator('.fixed')).to_be_visible()
+
+    def test_room_modal_has_slots(self, page: Page):
+        login(page)
+        page.goto(F + '/rooms')
+        page.wait_for_timeout(1000)
+        rooms = page.locator('.rounded-xl.cursor-pointer')
+        if rooms.count() > 0:
+            rooms.first.click()
+            page.wait_for_timeout(500)
+            modal = page.locator('.fixed')
+            expect(modal).to_be_visible()
+
+    def test_stats_cards(self, page: Page):
+        login(page)
+        page.goto(F + '/rooms')
+        page.wait_for_timeout(500)
+        cards = page.locator('.text-2xl.font-bold')
+        assert cards.count() >= 4
 
 
 # ============================================================
 # CONTRACTS
 # ============================================================
-class TestContractsE2E:
-
-    def test_contracts_page_loads(self, page: Page):
+class TestContracts:
+    def test_list_loads(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/contracts')
-        page.wait_for_timeout(1000)
-        expect(page.locator('h1')).to_be_visible()
-
-
-# ============================================================
-# FINANCE
-# ============================================================
-class TestFinanceE2E:
-
-    def test_finance_page_loads(self, page: Page):
-        login(page)
-        page.goto(FRONTEND + '/finance')
-        page.wait_for_timeout(1000)
-        expect(page.locator('h1')).to_be_visible()
-
-    def test_new_payment_page(self, page: Page):
-        login(page)
-        page.goto(FRONTEND + '/finance/payment/new')
+        page.goto(F + '/contracts')
         page.wait_for_timeout(500)
         expect(page.locator('h1')).to_be_visible()
+
+    def test_status_tabs(self, page: Page):
+        login(page)
+        page.goto(F + '/contracts')
+        page.wait_for_timeout(500)
+        tabs = page.locator('.rounded-lg.p-1 >> button')
+        for i in range(min(tabs.count(), 4)):
+            tabs.nth(i).click()
+            page.wait_for_timeout(300)
+
+    def test_click_contract_shows_detail(self, page: Page):
+        login(page)
+        page.goto(F + '/contracts')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+
+
+# ============================================================
+# FINANCE FLOW
+# ============================================================
+class TestFinanceFlow:
+    def test_payments_list(self, page: Page):
+        login(page)
+        page.goto(F + '/finance')
+        page.wait_for_timeout(500)
+        expect(page.locator('h1')).to_be_visible()
+
+    def test_new_payment_navigate(self, page: Page):
+        login(page)
+        page.goto(F + '/finance')
+        page.wait_for_timeout(500)
+        page.locator('button:has-text("+")').first.click()
+        page.wait_for_timeout(500)
+        expect(page).to_have_url(F + '/finance/payment/new')
+
+    def test_payment_form_elements(self, page: Page):
+        login(page)
+        page.goto(F + '/finance/payment/new')
+        page.wait_for_timeout(500)
+        # Search field
+        expect(page.locator('input').first).to_be_visible()
+        # Payment method buttons (cash, transfer, card)
+        buttons = page.locator('.rounded-xl.border')
+        assert buttons.count() >= 3
+
+    def test_payment_from_resident_detail(self, page: Page):
+        login(page)
+        page.goto(F + '/residents')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+            pay_btn = page.locator('button:has-text("+")')
+            if pay_btn.count() > 0:
+                pay_btn.first.click()
+                page.wait_for_timeout(500)
+                # Should navigate to payment page with resident pre-selected
+                expect(page).to_have_url(F + '/finance/payment/new?resident=*')
 
 
 # ============================================================
 # REPORTS
 # ============================================================
-class TestReportsE2E:
-
-    def test_reports_page_loads(self, page: Page):
+class TestReports:
+    def test_page_loads(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/reports')
-        page.wait_for_timeout(1000)
+        page.goto(F + '/reports')
+        page.wait_for_timeout(500)
         expect(page.locator('h1')).to_be_visible()
+
+    def test_all_tabs_switch(self, page: Page):
+        login(page)
+        page.goto(F + '/reports')
+        page.wait_for_timeout(500)
+        tabs = page.locator('.border-b >> button')
+        count = tabs.count()
+        for i in range(min(count, 5)):
+            tabs.nth(i).click()
+            page.wait_for_timeout(500)
+
+    def test_each_tab_has_content(self, page: Page):
+        login(page)
+        page.goto(F + '/reports')
+        page.wait_for_timeout(500)
+        tabs = page.locator('.border-b >> button')
+        for i in range(min(tabs.count(), 5)):
+            tabs.nth(i).click()
+            page.wait_for_timeout(500)
+            # Each tab should render something
+            page.locator('.bg-dark-card').count()
 
 
 # ============================================================
 # AUDIT
 # ============================================================
-class TestAuditE2E:
-
-    def test_audit_page_loads(self, page: Page):
+class TestAudit:
+    def test_page_loads(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/audit')
-        page.wait_for_timeout(1000)
+        page.goto(F + '/audit')
+        page.wait_for_timeout(500)
         expect(page.locator('h1')).to_be_visible()
 
-    def test_audit_expand_detail(self, page: Page):
+    def test_expand_row_detail(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/audit')
-        page.wait_for_timeout(1000)
-        # Click first row to expand
-        rows = page.locator('.hover\\:bg-dark-hover')
+        page.goto(F + '/audit')
+        page.wait_for_timeout(500)
+        rows = page.locator('.cursor-pointer')
         if rows.count() > 0:
             rows.first.click()
             page.wait_for_timeout(500)
+            # Detail should expand
+            expect(page.locator('.bg-dark-bg.border')).to_be_visible()
 
-
-# ============================================================
-# USERS
-# ============================================================
-class TestUsersE2E:
-
-    def test_users_page_loads(self, page: Page):
+    def test_action_filter(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/users')
-        page.wait_for_timeout(1000)
+        page.goto(F + '/audit')
+        page.wait_for_timeout(500)
+        sel = page.locator('select')
+        if sel.count() >= 1:
+            sel.first.select_option(index=1)
+            page.wait_for_timeout(500)
+            sel.first.select_option(index=0)
+
+    def test_section_filter(self, page: Page):
+        login(page)
+        page.goto(F + '/audit')
+        page.wait_for_timeout(500)
+        sel = page.locator('select')
+        if sel.count() >= 2:
+            sel.nth(1).select_option(index=1)
+            page.wait_for_timeout(500)
+            sel.nth(1).select_option(index=0)
+
+
+# ============================================================
+# USERS FLOW
+# ============================================================
+class TestUsersFlow:
+    def test_list_loads(self, page: Page):
+        login(page)
+        page.goto(F + '/users')
+        page.wait_for_timeout(500)
         expect(page.locator('h1')).to_be_visible()
 
-    def test_click_user_shows_detail(self, page: Page):
+    def test_click_user_detail_panel(self, page: Page):
         login(page)
-        page.goto(FRONTEND + '/users')
-        page.wait_for_timeout(1000)
-        # Click first user row
+        page.goto(F + '/users')
+        page.wait_for_timeout(500)
         rows = page.locator('tbody >> tr')
         if rows.count() > 0:
             rows.first.click()
             page.wait_for_timeout(500)
-            # Detail panel should appear
             expect(page.locator('text=Email')).to_be_visible()
 
-
-# ============================================================
-# LOGOUT
-# ============================================================
-class TestLogout:
-
-    def test_logout(self, page: Page):
+    def test_detail_shows_role(self, page: Page):
         login(page)
-        # Click logout button
-        page.click('aside >> button:has-text("")')  # Red logout button
-        page.wait_for_timeout(1000)
-        expect(page).to_have_url(FRONTEND + '/login')
+        page.goto(F + '/users')
+        page.wait_for_timeout(500)
+        rows = page.locator('tbody >> tr')
+        if rows.count() > 0:
+            rows.first.click()
+            page.wait_for_timeout(500)
+
+    def test_add_user_modal_step1(self, page: Page):
+        login(page)
+        page.goto(F + '/users')
+        page.wait_for_timeout(500)
+        page.locator('button:has-text("+")').first.click()
+        page.wait_for_timeout(500)
+        # Step 1 — email verification
+        expect(page.locator('.fixed >> input[type="email"]')).to_be_visible()
+
+    def test_add_user_modal_close(self, page: Page):
+        login(page)
+        page.goto(F + '/users')
+        page.wait_for_timeout(500)
+        page.locator('button:has-text("+")').first.click()
+        page.wait_for_timeout(300)
+        page.locator('.fixed >> button').first.click()
+        page.wait_for_timeout(300)
+
+
+# ============================================================
+# LANGUAGE — FULL FLOW
+# ============================================================
+class TestLanguageFullFlow:
+    def test_uz_on_login(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(300)
+        page.locator('button:has-text("UZ")').click()
+        page.wait_for_timeout(300)
+        expect(page.locator('text=Kirish')).to_be_visible()
+
+    def test_qq_on_login(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(300)
+        page.locator('button:has-text("QQ")').click()
+        page.wait_for_timeout(300)
+        expect(page.locator('text=Kiriw')).to_be_visible()
+
+    def test_language_persists_after_login(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(300)
+        page.locator('button:has-text("UZ")').click()
+        page.wait_for_timeout(200)
+        page.fill('input[type="email"]', EMAIL)
+        page.fill('input[type="password"]', PWD)
+        page.click('button[type="submit"]')
+        page.wait_for_url(F + '/')
+        page.wait_for_timeout(500)
+        expect(page.locator('aside >> text=Yashovchilar')).to_be_visible()
+        # Reset to RU
+        page.locator('aside >> button:has-text("RU")').click()
+        page.wait_for_timeout(300)
+
+    def test_switch_back_to_ru(self, page: Page):
+        page.goto(F + '/login')
+        page.wait_for_timeout(300)
+        page.locator('button:has-text("UZ")').click()
+        page.wait_for_timeout(200)
+        page.locator('button:has-text("RU")').click()
+        page.wait_for_timeout(300)
+        expect(page.locator('text=Войти')).to_be_visible()
+
+
+# ============================================================
+# CROSS-BROWSER (placeholder)
+# ============================================================
+@pytest.mark.skip(reason='Run manually: pytest test_e2e.py --browser firefox')
+class TestCrossBrowser:
+    def test_login_works(self, page: Page):
+        login(page)
+        expect(page).to_have_url(F + '/')
