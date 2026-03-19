@@ -71,15 +71,22 @@ class RoomAssignmentViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def create(self, request, *args, **kwargs):
+        from django.core.exceptions import ValidationError as DjangoValidationError
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        assignment = RoomAssignmentService.assign_resident_to_room(
-            resident=data['resident'],
-            room=data['room'],
-            contract=data['contract'],
-            assigned_by=request.user,
-        )
+        try:
+            assignment = RoomAssignmentService.assign_resident_to_room(
+                resident=data['resident'],
+                room=data['room'],
+                contract=data['contract'],
+                assigned_by=request.user,
+            )
+        except DjangoValidationError as e:
+            return Response(
+                {'error': {'code': 'ValidationError', 'message': str(e.message if hasattr(e, 'message') else e.messages[0]), 'details': {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(
             RoomAssignmentListSerializer(assignment).data,
             status=status.HTTP_201_CREATED,

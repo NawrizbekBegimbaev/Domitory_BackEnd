@@ -59,3 +59,9 @@ def api(api_base, auth_headers):
         def delete(self, path, **kw):
             return requests.delete(f'{api_base}{path}', headers=auth_headers, **kw)
     return ApiClient()
+
+
+@pytest.fixture(scope='session')
+def ids():
+    """Shared test state between all API test classes."""
+    return {}
