@@ -93,7 +93,7 @@ export default function FloorsPage() {
         {' > '}{building?.name || '...'}{' > '}{t('floorsTitle')}
       </div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{t('floorsTitle')} — {building?.name || '...'}</h1>
           <p className="text-text-muted text-sm">{floors.length} {t('floors').toLowerCase()} · {rooms.length} {t('rooms').toLowerCase()}</p>
@@ -239,7 +239,7 @@ function FloorModal({ buildingId, floor, onClose, onSaved }: { buildingId: strin
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-sm">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{isEdit ? t('editFloor') : t('newFloor')}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
         </div>
@@ -300,7 +300,7 @@ function RoomModal({ floorId, buildingGenderPolicy, onClose, onSaved }: { floorI
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{t('newRoom')}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
         </div>
@@ -366,7 +366,7 @@ function BuildingEditModal({ building, onClose, onSaved }: { building: Building;
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{t('editBuilding')}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
         </div>

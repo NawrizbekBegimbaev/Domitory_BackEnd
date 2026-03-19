@@ -64,7 +64,7 @@ export default function ContractsPage() {
   return (
     <div className="flex gap-6">
       <div className="flex-1">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl font-bold">{t('contractsTitle')}</h1>
             <p className="text-text-muted text-sm">{data.count} {t('contractsTitle').toLowerCase()}</p>

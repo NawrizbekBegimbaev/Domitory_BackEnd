@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <div className="text-text-muted text-sm">{t('navHome')}</div>
           <h1 className="text-2xl font-bold mt-1">{t('dashTitle')}</h1>

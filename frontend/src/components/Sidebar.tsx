@@ -31,9 +31,11 @@ const navItems: NavItem[] = [
 interface Props {
   user: User
   onLogout: () => void
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export default function Sidebar({ user, onLogout }: Props) {
+export default function Sidebar({ user, onLogout, mobileOpen = false, onMobileClose }: Props) {
   const navigate = useNavigate()
   const { t, lang, setLang } = useTranslation()
   const roleName = user.role?.name || ''
@@ -45,7 +47,7 @@ export default function Sidebar({ user, onLogout }: Props) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-56 bg-dark-card border-r border-dark-border flex flex-col z-50">
+    <aside className={`fixed left-0 top-0 bottom-0 w-56 bg-dark-card border-r border-dark-border flex flex-col z-50 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       <div className="flex items-center gap-2 px-5 py-5 border-b border-dark-border">
         <Building2 size={24} className="text-accent" />
         <div>
@@ -60,6 +62,7 @@ export default function Sidebar({ user, onLogout }: Props) {
             key={item.to}
             to={item.to}
             end={item.to === '/'}
+            onClick={onMobileClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive ? 'bg-accent/10 text-accent font-medium' : 'text-text-secondary hover:bg-dark-hover hover:text-white'

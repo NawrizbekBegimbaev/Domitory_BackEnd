@@ -79,7 +79,7 @@ export default function BuildingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{t('buildingsTitle')}</h1>
           <p className="text-text-muted text-sm">{t('buildingsDesc')}</p>
@@ -200,7 +200,7 @@ function BuildingModal({ building, onClose, onSaved }: { building: Building | nu
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{isEdit ? t('editBuilding') : t('newBuilding')}</h2>
           <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
         </div>

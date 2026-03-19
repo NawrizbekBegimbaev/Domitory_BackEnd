@@ -90,12 +90,12 @@ export default function RoomsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{t('roomsTitle')}</h1>
           <p className="text-text-muted text-sm">{building?.name || '—'} · {floors.length} {t('floors').toLowerCase()} · {rooms.length} {t('rooms').toLowerCase()}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select value={selectedBuilding} onChange={(e) => setSelectedBuilding(e.target.value)} className="text-sm">
             {buildings.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -127,7 +127,7 @@ export default function RoomsPage() {
       </div>
 
       {/* Legend + Sort */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex gap-6 text-sm text-text-secondary">
           <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-600" /> {t('statusAvailable')}</span>
           <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-dark-border" /> {t('statusFull')}</span>

@@ -99,7 +99,7 @@ export default function ResidentDetailPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
         {resident.photo ? (
           <img src={resident.photo} alt="" style={{ width: 64, height: 64, minWidth: 64, minHeight: 64, borderRadius: '50%', objectFit: 'cover' }} />
         ) : (
@@ -135,7 +135,7 @@ export default function ResidentDetailPage() {
             </div>
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
           <button onClick={() => setShowEditModal(true)} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dark-border text-sm hover:bg-dark-hover transition-colors">
             <Edit size={14} /> {t('edit')}
           </button>

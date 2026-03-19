@@ -57,7 +57,7 @@ export default function FinancePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{t('financeTitle')}</h1>
           <p className="text-text-muted text-sm">{t('financeDesc')}</p>

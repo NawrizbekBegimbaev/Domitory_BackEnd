@@ -35,7 +35,7 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">{t('usersTitle')}</h1>
           <p className="text-text-muted text-sm">{data.count} {t('navUsers').toLowerCase()}</p>
@@ -45,9 +45,9 @@ export default function UsersPage() {
         </button>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Table */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-x-auto">
           <div className="bg-dark-card border border-dark-border rounded-xl">
             <table className="w-full">
               <thead>
@@ -113,7 +113,7 @@ export default function UsersPage() {
 
         {/* Detail panel */}
         {selected && (
-          <div className="w-80 shrink-0">
+          <div className="w-full lg:w-80 lg:shrink-0">
             <div className="bg-dark-card border border-dark-border rounded-xl p-5 sticky top-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs text-text-muted uppercase">{t('details')}</span>
