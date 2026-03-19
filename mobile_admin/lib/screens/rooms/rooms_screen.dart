@@ -1,0 +1,14 @@
+import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+
+class RoomsScreen extends StatelessWidget {
+  const RoomsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('DORMITORY')),
+      body: const Center(child: Text('Комнаты — в разработке', style: TextStyle(color: AppColors.textMuted))),
+    );
+  }
+}
