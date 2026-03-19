@@ -39,7 +39,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.accounts',
-    'apps.organizations',
+    'apps.organizations',  # kept for migration history
     'apps.inventory',
     'apps.residents',
     'apps.occupancy',
@@ -166,3 +166,21 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+
+# Email (Gmail SMTP)
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='begimbaev.dormitory@gmail.com')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Dormitory <begimbaev.dormitory@gmail.com>')
+
+# Password reset OTP expiry (minutes)
+PASSWORD_RESET_OTP_EXPIRY = 10
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='')
+TELEGRAM_BOT_USERNAME = 'begimbaev_dormitory_bot'

@@ -81,7 +81,7 @@ class TestAssignResidentToRoom:
             end_date='2025-12-31',
             created_by=user,
         )
-        with pytest.raises(ValidationError, match='male only'):
+        with pytest.raises(ValidationError, match='для мужчин'):
             RoomAssignmentService.assign_resident_to_room(
                 female_resident, room_male_only, contract, user,
             )
@@ -166,7 +166,7 @@ class TestTransferResident:
         with pytest.raises(ValidationError, match='is full'):
             RoomAssignmentService.transfer_resident(assignment, full_room, user)
 
-    def test_transfer_rejects_gender_mismatch(self, female_resident, room, building, user, floor, organization):
+    def test_transfer_rejects_gender_mismatch(self, female_resident, room, building, user, floor):
         contract = AccommodationContract.objects.create(
             resident=female_resident,
             building=building,
@@ -184,5 +184,5 @@ class TestTransferResident:
             capacity=4,
             gender_policy='male_only',
         )
-        with pytest.raises(ValidationError, match='male only'):
+        with pytest.raises(ValidationError, match='для мужчин'):
             RoomAssignmentService.transfer_resident(assignment, male_room, user)

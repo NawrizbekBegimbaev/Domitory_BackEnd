@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import User
+from apps.audit.services import AuditService
 
 
 class AuthService:
@@ -24,4 +25,9 @@ class AuthService:
         user = User(**data)
         user.set_password(password)
         user.save()
+        if created_by:
+            AuditService.log(created_by, 'create', user, {
+                'email': user.email,
+                'full_name': user.full_name,
+            })
         return user

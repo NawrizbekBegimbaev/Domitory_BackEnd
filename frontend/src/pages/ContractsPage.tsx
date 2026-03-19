@@ -4,22 +4,24 @@ import { contractsApi } from '../api/endpoints'
 import type { Contract, PaginatedResponse } from '../types'
 import DataTable from '../components/DataTable'
 import Pagination from '../components/Pagination'
-import { formatDate, statusLabels, statusColors } from '../utils/format'
+import { formatDate, statusColors, getStatusLabel } from '../utils/format'
 import NewContractModal from '../components/NewContractModal'
-
-const tabs = [
-  { key: '', label: 'Все' },
-  { key: 'active', label: 'Активные' },
-  { key: 'expired', label: 'Истёк срок' },
-  { key: 'terminated', label: 'Расторгнутые' },
-]
+import { useTranslation } from '../i18n'
 
 export default function ContractsPage() {
+  const { t } = useTranslation()
   const [data, setData] = useState<PaginatedResponse<Contract>>({ count: 0, next: null, previous: null, results: [] })
   const [tab, setTab] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<Contract | null>(null)
   const [showNewModal, setShowNewModal] = useState(false)
+
+  const tabs = [
+    { key: '', label: t('all') },
+    { key: 'active', label: t('tabActive') },
+    { key: 'expired', label: t('statusExpired') },
+    { key: 'terminated', label: t('statusTerminated') },
+  ]
 
   const reload = () => {
     const params: Record<string, string> = { page: String(page) }
@@ -32,28 +34,28 @@ export default function ContractsPage() {
   const totalPages = Math.ceil(data.count / 20)
 
   const columns = [
-    { key: 'contract_number', label: 'Договор' },
+    { key: 'contract_number', label: t('contractNumber') },
     {
       key: 'resident_name',
-      label: 'Жилец',
+      label: t('resident'),
       render: (c: Contract) => c.resident_name || c.resident,
     },
     {
       key: 'start_date',
-      label: 'Начало',
+      label: t('startDate'),
       render: (c: Contract) => formatDate(c.start_date),
     },
     {
       key: 'end_date',
-      label: 'Окончание',
+      label: t('endDate'),
       render: (c: Contract) => formatDate(c.end_date),
     },
     {
       key: 'status',
-      label: 'Статус',
+      label: t('status'),
       render: (c: Contract) => (
         <span className={`font-medium ${statusColors[c.status]}`}>
-          {statusLabels[c.status] || c.status}
+          {getStatusLabel(c.status, t)}
         </span>
       ),
     },
@@ -64,24 +66,21 @@ export default function ContractsPage() {
       <div className="flex-1">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Договоры</h1>
-            <p className="text-text-muted text-sm">{data.count} договоров в системе</p>
+            <h1 className="text-2xl font-bold">{t('contractsTitle')}</h1>
+            <p className="text-text-muted text-sm">{data.count} {t('contractsTitle').toLowerCase()}</p>
           </div>
-          <button onClick={() => setShowNewModal(true)} className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors">
-            <Plus size={16} /> Новый договор
-          </button>
         </div>
 
         <div className="flex gap-1 mb-4 bg-dark-card border border-dark-border rounded-lg p-1 w-fit">
-          {tabs.map((t) => (
+          {tabs.map((tb) => (
             <button
-              key={t.key}
-              onClick={() => { setTab(t.key); setPage(1) }}
+              key={tb.key}
+              onClick={() => { setTab(tb.key); setPage(1) }}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                tab === t.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
+                tab === tb.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
               }`}
             >
-              {t.label}
+              {tb.label}
             </button>
           ))}
         </div>
@@ -103,38 +102,38 @@ export default function ContractsPage() {
         <div className="w-80 shrink-0">
           <div className="bg-dark-card border border-dark-border rounded-xl p-5 sticky top-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-sm text-text-muted">ДЕТАЛИ ДОГОВОРА</h3>
+              <h3 className="font-semibold text-sm text-text-muted">{t('contractsTitle').toUpperCase()}</h3>
               <button onClick={() => setSelected(null)} className="text-text-muted hover:text-white">x</button>
             </div>
             <div className="text-lg font-bold mb-1">{selected.contract_number}</div>
             <span className={`text-sm font-medium ${statusColors[selected.status]}`}>
-              {statusLabels[selected.status]}
+              {getStatusLabel(selected.status, t)}
             </span>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-text-muted">Жилец:</span>
+                <span className="text-text-muted">{t('resident')}:</span>
                 <span>{selected.resident_name || '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">Начало:</span>
+                <span className="text-text-muted">{t('startDate')}:</span>
                 <span>{formatDate(selected.start_date)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">Окончание:</span>
+                <span className="text-text-muted">{t('endDate')}:</span>
                 <span>{formatDate(selected.end_date)}</span>
               </div>
             </div>
             {selected.status === 'active' && (
               <button
                 onClick={async () => {
-                  if (!confirm('Расторгнуть договор?')) return
-                  await contractsApi.terminate(selected.id).catch(() => alert('Ошибка'))
+                  if (!confirm(t('terminate') + '?')) return
+                  await contractsApi.terminate(selected.id).catch(() => alert(t('error')))
                   setSelected(null)
                   reload()
                 }}
                 className="w-full mt-6 py-2 rounded-lg border border-red-500/30 text-red-400 text-sm hover:bg-red-500/10 transition-colors"
               >
-                Расторгнуть договор
+                {t('terminate')}
               </button>
             )}
           </div>

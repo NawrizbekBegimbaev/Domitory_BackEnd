@@ -1,7 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
-from django.db.models import Count, F, Q, Sum, Value
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce
 
 from apps.billing.models import Charge, Payment, PaymentAllocation
@@ -12,18 +11,13 @@ from apps.residents.models import Resident
 class ReportService:
 
     @staticmethod
-    def summary(organization):
-        """Dashboard summary: total residents, free beds, total debt, collected this month."""
+    def summary():
         from django.utils import timezone
         now = timezone.now()
 
-        total_residents = Resident.objects.filter(
-            organization=organization,
-            status=Resident.Status.ACTIVE,
-        ).count()
+        total_residents = Resident.objects.filter(status=Resident.Status.ACTIVE).count()
 
         room_stats = Room.objects.filter(
-            floor__building__organization=organization,
             status__in=[Room.Status.AVAILABLE, Room.Status.FULL],
         ).aggregate(
             total_capacity=Coalesce(Sum('capacity'), 0),
@@ -31,22 +25,19 @@ class ReportService:
         )
         free_beds = room_stats['total_capacity'] - room_stats['total_occupancy']
 
+        unpaid_statuses = [Charge.Status.PENDING, Charge.Status.OVERDUE, Charge.Status.PARTIALLY_PAID]
+
         total_debt = Charge.objects.filter(
-            resident__organization=organization,
-            status__in=[Charge.Status.PENDING, Charge.Status.OVERDUE, Charge.Status.PARTIALLY_PAID],
-        ).aggregate(
-            charged=Coalesce(Sum('amount'), Decimal('0')),
-        )['charged']
+            status__in=unpaid_statuses,
+        ).aggregate(charged=Coalesce(Sum('amount'), Decimal('0')))['charged']
 
         allocated_to_unpaid = PaymentAllocation.objects.filter(
-            charge__resident__organization=organization,
-            charge__status__in=[Charge.Status.PENDING, Charge.Status.OVERDUE, Charge.Status.PARTIALLY_PAID],
+            charge__status__in=unpaid_statuses,
         ).aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
 
         debt = total_debt - allocated_to_unpaid
 
         collected_this_month = Payment.objects.filter(
-            resident__organization=organization,
             status=Payment.Status.COMPLETED,
             payment_date__year=now.year,
             payment_date__month=now.month,
@@ -60,9 +51,8 @@ class ReportService:
         }
 
     @staticmethod
-    def occupancy(organization, building_id=None):
-        """Occupancy per building/floor."""
-        buildings_qs = Building.objects.filter(organization=organization, is_active=True)
+    def occupancy(building_id=None):
+        buildings_qs = Building.objects.filter(is_active=True)
         if building_id:
             buildings_qs = buildings_qs.filter(id=building_id)
 
@@ -102,10 +92,8 @@ class ReportService:
         return result
 
     @staticmethod
-    def available_rooms(organization, building_id=None, gender=None):
-        """List of available rooms with free beds."""
+    def available_rooms(building_id=None, gender=None):
         qs = Room.objects.filter(
-            floor__building__organization=organization,
             status=Room.Status.AVAILABLE,
         ).select_related('floor', 'floor__building')
 
@@ -127,12 +115,10 @@ class ReportService:
         ).order_by('floor__building__name', 'floor__number', 'room_number')
 
     @staticmethod
-    def debtors(organization):
-        """Residents with outstanding debt, sorted by debt amount."""
+    def debtors():
         unpaid_statuses = [Charge.Status.PENDING, Charge.Status.OVERDUE, Charge.Status.PARTIALLY_PAID]
 
         residents_with_debt = Resident.objects.filter(
-            organization=organization,
             status=Resident.Status.ACTIVE,
             charges__status__in=unpaid_statuses,
         ).distinct().annotate(
@@ -141,10 +127,7 @@ class ReportService:
                 Decimal('0'),
             ),
             total_allocated=Coalesce(
-                Sum(
-                    'charges__allocations__amount',
-                    filter=Q(charges__status__in=unpaid_statuses),
-                ),
+                Sum('charges__allocations__amount', filter=Q(charges__status__in=unpaid_statuses)),
                 Decimal('0'),
             ),
         ).annotate(
@@ -157,10 +140,8 @@ class ReportService:
         )
 
     @staticmethod
-    def payments_report(organization, date_from=None, date_to=None, method=None):
-        """Payments for a period."""
+    def payments_report(date_from=None, date_to=None, method=None):
         qs = Payment.objects.filter(
-            resident__organization=organization,
             status=Payment.Status.COMPLETED,
         ).select_related('resident', 'recorded_by')
 
@@ -182,9 +163,8 @@ class ReportService:
         return {'payments': list(payments), 'total': total, 'count': qs.count()}
 
     @staticmethod
-    def residents_report(organization, status_filter=None, faculty=None, gender=None):
-        """Full residents list with filters."""
-        qs = Resident.objects.filter(organization=organization)
+    def residents_report(status_filter=None, faculty=None, gender=None):
+        qs = Resident.objects.all()
 
         if status_filter:
             qs = qs.filter(status=status_filter)

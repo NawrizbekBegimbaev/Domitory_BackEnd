@@ -2,21 +2,11 @@ export interface User {
   id: string
   email: string
   full_name: string
-  role: { name: string; description: string } | null
-  organization: { id: string; name: string; short_name: string } | null
+  role: { id: number; name: string; description: string } | null
   phone_number: string
+  photo: string | null
   is_active: boolean
-}
-
-export interface Organization {
-  id: string
-  name: string
-  short_name: string
-  org_type: string
-  status: string
-  contact_email: string
-  contact_phone: string
-  address: string
+  date_joined: string
 }
 
 export interface Building {
@@ -26,11 +16,14 @@ export interface Building {
   gender_policy: string
   is_active: boolean
   organization: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Floor {
   id: string
   building: string
+  building_name: string
   number: number
   description: string
 }
@@ -38,12 +31,19 @@ export interface Floor {
 export interface Room {
   id: string
   floor: string
+  floor_number: number
+  building_name: string
+  building_id?: string
   room_number: string
   capacity: number
   current_occupancy: number
+  available_beds: number
   gender_policy: string
   status: string
   monthly_price: string
+  description?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Resident {
@@ -56,9 +56,14 @@ export interface Resident {
   university_id: string
   faculty: string
   course: number | null
+  photo: string | null
   status: string
   notes: string
   organization: string
+  guardians?: Guardian[]
+  documents?: ResidentDocument[]
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Guardian {
@@ -68,6 +73,18 @@ export interface Guardian {
   relationship: string
   phone_number: string
   is_emergency_contact: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface ResidentDocument {
+  id: string
+  resident: string
+  document_type: string
+  document_number: string
+  file: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Contract {
@@ -80,6 +97,10 @@ export interface Contract {
   start_date: string
   end_date: string
   status: string
+  created_by?: string
+  assignments?: RoomAssignment[]
+  created_at?: string
+  updated_at?: string
 }
 
 export interface RoomAssignment {
@@ -89,9 +110,21 @@ export interface RoomAssignment {
   resident_name?: string
   room: string
   room_number?: string
+  building_name?: string
   start_date: string
   end_date: string | null
   status: string
+}
+
+export interface StayRecord {
+  id: string
+  resident: string
+  resident_name?: string
+  check_in_at: string | null
+  check_out_at: string | null
+  reason: string
+  recorded_by: string | null
+  created_at: string
 }
 
 export interface TariffPlan {
@@ -100,14 +133,20 @@ export interface TariffPlan {
   amount: string
   billing_period: string
   is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface Charge {
   id: string
   resident: string
+  resident_name?: string
+  tariff_plan: string | null
   period_month: number
   period_year: number
   amount: string
+  paid_amount: string
+  remaining: string
   status: string
   due_date: string
 }
@@ -115,23 +154,47 @@ export interface Charge {
 export interface Payment {
   id: string
   resident: string
+  resident_name?: string
   amount: string
   payment_date: string
   payment_method: string
   status: string
   recorded_by: string | null
+  recorded_by_name?: string | null
   notes: string
+  created_at: string
+}
+
+export interface Discount {
+  id: string
+  resident: string
+  discount_type: string
+  value: string
+  reason: string
+  start_date: string
+  end_date: string | null
+  approved_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BalanceResponse {
+  total_charges: string
+  total_paid: string
+  total_payments: string
+  debt: string
 }
 
 export interface AuditLog {
   id: string
   user: string
   user_name?: string
+  user_email?: string
   action: string
   model_name: string
   object_id: string
   changes: Record<string, unknown>
-  ip_address: string
+  ip_address: string | null
   timestamp: string
 }
 

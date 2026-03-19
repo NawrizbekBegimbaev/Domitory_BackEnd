@@ -22,10 +22,7 @@ class BuildingViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
 
     def get_queryset(self):
-        user = self.request.user
-        if user.role_name == 'platform_admin':
-            return Building.objects.all()
-        return Building.objects.filter(organization=user.organization)
+        return Building.objects.all()
 
 
 class FloorViewSet(viewsets.ModelViewSet):
@@ -35,11 +32,7 @@ class FloorViewSet(viewsets.ModelViewSet):
     ordering_fields = ['number']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = Floor.objects.select_related('building')
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(building__organization=user.organization)
+        return Floor.objects.select_related('building').all()
 
 
 class RoomViewSet(viewsets.ModelViewSet):
@@ -49,11 +42,7 @@ class RoomViewSet(viewsets.ModelViewSet):
     ordering_fields = ['room_number', 'capacity', 'current_occupancy', 'monthly_price']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = Room.objects.select_related('floor', 'floor__building')
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(floor__building__organization=user.organization)
+        return Room.objects.select_related('floor', 'floor__building').all()
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -64,6 +53,16 @@ class RoomViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAuthenticated(), IsDormManager()]
         return super().get_permissions()
+
+    def perform_update(self, serializer):
+        room = self.get_object()
+        new_status = serializer.validated_data.get('status', room.status)
+        if new_status in ('maintenance', 'closed') and room.current_occupancy > 0:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({
+                'status': f'Невозможно перевести комнату в статус "{new_status}". Сначала переселите {room.current_occupancy} жильцов в другие комнаты.'
+            })
+        serializer.save()
 
     @action(detail=False, methods=['get'])
     def available(self, request):

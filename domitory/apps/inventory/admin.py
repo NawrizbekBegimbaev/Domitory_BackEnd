@@ -17,8 +17,8 @@ class RoomInline(admin.TabularInline):
 
 @admin.register(Building)
 class BuildingAdmin(admin.ModelAdmin):
-    list_display = ['name', 'organization', 'gender_policy', 'is_active', 'created_at']
-    list_filter = ['is_active', 'gender_policy', 'organization']
+    list_display = ['name', 'gender_policy', 'is_active', 'created_at']
+    list_filter = ['is_active', 'gender_policy']
     search_fields = ['name']
     inlines = [FloorInline]
 

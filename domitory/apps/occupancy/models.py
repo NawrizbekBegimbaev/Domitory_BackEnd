@@ -8,9 +8,9 @@ from common.mixins import TimestampMixin
 
 class AccommodationContract(TimestampMixin):
     class Status(models.TextChoices):
-        ACTIVE = 'active', 'Active'
-        EXPIRED = 'expired', 'Expired'
-        TERMINATED = 'terminated', 'Terminated'
+        ACTIVE = 'active', 'Активный'
+        EXPIRED = 'expired', 'Истёк'
+        TERMINATED = 'terminated', 'Расторгнут'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resident = models.ForeignKey(
@@ -23,9 +23,9 @@ class AccommodationContract(TimestampMixin):
         on_delete=models.CASCADE,
         related_name='contracts',
     )
-    contract_number = models.CharField('Contract number', max_length=50, unique=True)
-    start_date = models.DateField('Start date')
-    end_date = models.DateField('End date')
+    contract_number = models.CharField('Номер договора', max_length=50, unique=True)
+    start_date = models.DateField('Дата начала')
+    end_date = models.DateField('Дата окончания')
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -39,7 +39,9 @@ class AccommodationContract(TimestampMixin):
     )
 
     class Meta:
-        ordering = ['-start_date']
+        ordering = ['-created_at', '-start_date']
+        verbose_name = 'Договор'
+        verbose_name_plural = 'Договоры'
 
     def __str__(self):
         return f'{self.contract_number} - {self.resident.full_name}'
@@ -51,9 +53,9 @@ class AccommodationContract(TimestampMixin):
 
 class RoomAssignment(TimestampMixin):
     class Status(models.TextChoices):
-        ACTIVE = 'active', 'Active'
-        COMPLETED = 'completed', 'Completed'
-        TRANSFERRED = 'transferred', 'Transferred'
+        ACTIVE = 'active', 'Активное'
+        COMPLETED = 'completed', 'Завершено'
+        TRANSFERRED = 'transferred', 'Переведено'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     contract = models.ForeignKey(
@@ -71,8 +73,8 @@ class RoomAssignment(TimestampMixin):
         on_delete=models.CASCADE,
         related_name='assignments',
     )
-    start_date = models.DateField('Start date')
-    end_date = models.DateField('End date', null=True, blank=True)
+    start_date = models.DateField('Дата начала')
+    end_date = models.DateField('Дата окончания', null=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -87,6 +89,8 @@ class RoomAssignment(TimestampMixin):
 
     class Meta:
         ordering = ['-start_date']
+        verbose_name = 'Назначение'
+        verbose_name_plural = 'Назначения'
 
     def __str__(self):
         return f'{self.resident.full_name} -> Room {self.room.room_number}'
@@ -94,12 +98,12 @@ class RoomAssignment(TimestampMixin):
 
 class StayRecord(TimestampMixin):
     class Reason(models.TextChoices):
-        INITIAL_CHECK_IN = 'initial_check_in', 'Initial check-in'
-        TRANSFER = 'transfer', 'Transfer'
-        EVICTION = 'eviction', 'Eviction'
-        GRADUATION = 'graduation', 'Graduation'
-        TEMPORARY_LEAVE = 'temporary_leave', 'Temporary leave'
-        RETURN = 'return', 'Return'
+        INITIAL_CHECK_IN = 'initial_check_in', 'Заселение'
+        TRANSFER = 'transfer', 'Перевод'
+        EVICTION = 'eviction', 'Выселение'
+        GRADUATION = 'graduation', 'Выпуск'
+        TEMPORARY_LEAVE = 'temporary_leave', 'Временный выезд'
+        RETURN = 'return', 'Возвращение'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resident = models.ForeignKey(
@@ -107,8 +111,8 @@ class StayRecord(TimestampMixin):
         on_delete=models.CASCADE,
         related_name='stay_records',
     )
-    check_in_at = models.DateTimeField('Check-in', null=True, blank=True)
-    check_out_at = models.DateTimeField('Check-out', null=True, blank=True)
+    check_in_at = models.DateTimeField('Заселение', null=True, blank=True)
+    check_out_at = models.DateTimeField('Выезд', null=True, blank=True)
     reason = models.CharField(
         max_length=30,
         choices=Reason.choices,
@@ -122,6 +126,8 @@ class StayRecord(TimestampMixin):
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'Запись проживания'
+        verbose_name_plural = 'Записи проживания'
 
     def __str__(self):
         return f'{self.resident.full_name} - {self.get_reason_display()}'

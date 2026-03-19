@@ -3,20 +3,10 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from apps.accounts.models import Role, User
-from apps.organizations.models import Organization
 from apps.inventory.models import Building, Floor, Room
 from apps.residents.models import Resident
 from apps.occupancy.models import AccommodationContract
 from apps.billing.models import TariffPlan
-
-
-@pytest.fixture
-def organization(db):
-    return Organization.objects.create(
-        name='Test University',
-        short_name='TU',
-        org_type='university',
-    )
 
 
 @pytest.fixture
@@ -35,31 +25,28 @@ def role_accountant(db):
 
 
 @pytest.fixture
-def user(db, organization, role_admin):
+def user(db, role_admin):
     return User.objects.create_user(
         email='admin@test.com',
         password='testpass123',
         full_name='Test Admin',
         role=role_admin,
-        organization=organization,
     )
 
 
 @pytest.fixture
-def manager_user(db, organization, role_manager):
+def manager_user(db, role_manager):
     return User.objects.create_user(
         email='manager@test.com',
         password='testpass123',
         full_name='Test Manager',
         role=role_manager,
-        organization=organization,
     )
 
 
 @pytest.fixture
-def building(db, organization):
+def building(db):
     return Building.objects.create(
-        organization=organization,
         name='Building A',
         gender_policy='mixed',
     )
@@ -95,9 +82,8 @@ def room_male_only(db, floor):
 
 
 @pytest.fixture
-def resident(db, organization):
+def resident(db):
     return Resident.objects.create(
-        organization=organization,
         full_name='John Doe',
         gender='male',
         university_id='STU001',
@@ -107,9 +93,8 @@ def resident(db, organization):
 
 
 @pytest.fixture
-def female_resident(db, organization):
+def female_resident(db):
     return Resident.objects.create(
-        organization=organization,
         full_name='Jane Doe',
         gender='female',
         university_id='STU002',
@@ -132,9 +117,8 @@ def contract(db, resident, building, user):
 
 
 @pytest.fixture
-def tariff(db, organization):
+def tariff(db):
     return TariffPlan.objects.create(
-        organization=organization,
         name='Standard',
         amount=Decimal('500000'),
         billing_period='monthly',

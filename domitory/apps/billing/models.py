@@ -7,18 +7,13 @@ from common.mixins import TimestampMixin
 
 class TariffPlan(TimestampMixin):
     class BillingPeriod(models.TextChoices):
-        MONTHLY = 'monthly', 'Monthly'
-        SEMESTER = 'semester', 'Semester'
-        YEARLY = 'yearly', 'Yearly'
+        MONTHLY = 'monthly', 'Ежемесячно'
+        SEMESTER = 'semester', 'Семестр'
+        YEARLY = 'yearly', 'Годовой'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    organization = models.ForeignKey(
-        'organizations.Organization',
-        on_delete=models.CASCADE,
-        related_name='tariffs',
-    )
-    name = models.CharField('Name', max_length=100)
-    amount = models.DecimalField('Amount', max_digits=12, decimal_places=2)
+    name = models.CharField('Название', max_length=100)
+    amount = models.DecimalField('Сумма', max_digits=12, decimal_places=2)
     billing_period = models.CharField(
         max_length=20,
         choices=BillingPeriod.choices,
@@ -28,6 +23,8 @@ class TariffPlan(TimestampMixin):
 
     class Meta:
         ordering = ['name']
+        verbose_name = 'Тариф'
+        verbose_name_plural = 'Тарифы'
 
     def __str__(self):
         return f'{self.name} ({self.amount})'
@@ -35,11 +32,11 @@ class TariffPlan(TimestampMixin):
 
 class Charge(TimestampMixin):
     class Status(models.TextChoices):
-        PENDING = 'pending', 'Pending'
-        PARTIALLY_PAID = 'partially_paid', 'Partially paid'
-        PAID = 'paid', 'Paid'
-        OVERDUE = 'overdue', 'Overdue'
-        CANCELLED = 'cancelled', 'Cancelled'
+        PENDING = 'pending', 'Ожидает'
+        PARTIALLY_PAID = 'partially_paid', 'Частично оплачено'
+        PAID = 'paid', 'Оплачено'
+        OVERDUE = 'overdue', 'Просрочено'
+        CANCELLED = 'cancelled', 'Отменено'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resident = models.ForeignKey(
@@ -53,19 +50,21 @@ class Charge(TimestampMixin):
         null=True,
         related_name='charges',
     )
-    period_month = models.PositiveIntegerField('Month')
-    period_year = models.PositiveIntegerField('Year')
-    amount = models.DecimalField('Amount', max_digits=12, decimal_places=2)
+    period_month = models.PositiveIntegerField('Месяц')
+    period_year = models.PositiveIntegerField('Год')
+    amount = models.DecimalField('Сумма', max_digits=12, decimal_places=2)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
     )
-    due_date = models.DateField('Due date')
+    due_date = models.DateField('Срок оплаты')
 
     class Meta:
         ordering = ['period_year', 'period_month']
         unique_together = [('resident', 'period_month', 'period_year')]
+        verbose_name = 'Начисление'
+        verbose_name_plural = 'Начисления'
 
     def __str__(self):
         return f'{self.resident.full_name} - {self.period_month}/{self.period_year} ({self.amount})'
@@ -83,14 +82,14 @@ class Charge(TimestampMixin):
 
 class Payment(TimestampMixin):
     class Method(models.TextChoices):
-        CASH = 'cash', 'Cash'
-        BANK_TRANSFER = 'bank_transfer', 'Bank transfer'
+        CASH = 'cash', 'Наличные'
+        BANK_TRANSFER = 'bank_transfer', 'Банковский перевод'
         # CARD = 'card', 'Card'          # Stage 3
         # ONLINE = 'online', 'Online'    # Stage 3
 
     class Status(models.TextChoices):
-        COMPLETED = 'completed', 'Completed'
-        CANCELLED = 'cancelled', 'Cancelled'
+        COMPLETED = 'completed', 'Завершена'
+        CANCELLED = 'cancelled', 'Отменена'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resident = models.ForeignKey(
@@ -98,8 +97,8 @@ class Payment(TimestampMixin):
         on_delete=models.CASCADE,
         related_name='payments',
     )
-    amount = models.DecimalField('Amount', max_digits=12, decimal_places=2)
-    payment_date = models.DateField('Payment date')
+    amount = models.DecimalField('Сумма', max_digits=12, decimal_places=2)
+    payment_date = models.DateField('Дата оплаты')
     payment_method = models.CharField(
         max_length=20,
         choices=Method.choices,
@@ -121,6 +120,8 @@ class Payment(TimestampMixin):
 
     class Meta:
         ordering = ['-payment_date']
+        verbose_name = 'Оплата'
+        verbose_name_plural = 'Оплаты'
 
     def __str__(self):
         return f'{self.resident.full_name} - {self.amount} ({self.payment_date})'
@@ -138,10 +139,12 @@ class PaymentAllocation(models.Model):
         on_delete=models.CASCADE,
         related_name='allocations',
     )
-    amount = models.DecimalField('Amount', max_digits=12, decimal_places=2)
+    amount = models.DecimalField('Сумма', max_digits=12, decimal_places=2)
 
     class Meta:
         unique_together = [('payment', 'charge')]
+        verbose_name = 'Распределение'
+        verbose_name_plural = 'Распределения'
 
     def __str__(self):
         return f'{self.payment} -> {self.charge} ({self.amount})'
@@ -149,8 +152,8 @@ class PaymentAllocation(models.Model):
 
 class Discount(TimestampMixin):
     class DiscountType(models.TextChoices):
-        PERCENTAGE = 'percentage', 'Percentage'
-        FIXED = 'fixed', 'Fixed amount'
+        PERCENTAGE = 'percentage', 'Процент'
+        FIXED = 'fixed', 'Фиксированная'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     resident = models.ForeignKey(
@@ -175,6 +178,8 @@ class Discount(TimestampMixin):
 
     class Meta:
         ordering = ['-start_date']
+        verbose_name = 'Скидка'
+        verbose_name_plural = 'Скидки'
 
     def __str__(self):
         return f'{self.resident.full_name} - {self.get_discount_type_display()} {self.value}'

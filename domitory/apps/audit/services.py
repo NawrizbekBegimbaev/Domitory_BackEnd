@@ -33,3 +33,13 @@ class AuditService:
                 if old_str != new_str:
                     changes[field] = {'old': old_str, 'new': new_str}
         return changes
+
+    @staticmethod
+    def get_changes_from_dicts(old_data, new_data):
+        """Compare two plain dicts and return changes."""
+        changes = {}
+        for field, new_value in new_data.items():
+            old_value = old_data.get(field)
+            if old_value != new_value:
+                changes[field] = {'old': old_value, 'new': new_value}
+        return changes

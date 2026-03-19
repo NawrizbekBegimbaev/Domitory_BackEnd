@@ -26,11 +26,7 @@ class ContractViewSet(viewsets.ModelViewSet):
     ordering_fields = ['start_date', 'end_date', 'created_at']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = AccommodationContract.objects.select_related('resident', 'building', 'created_by')
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(building__organization=user.organization)
+        return AccommodationContract.objects.select_related('resident', 'building', 'created_by').all()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -60,13 +56,9 @@ class RoomAssignmentViewSet(viewsets.ModelViewSet):
     ordering_fields = ['start_date', 'created_at']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = RoomAssignment.objects.select_related(
+        return RoomAssignment.objects.select_related(
             'contract', 'resident', 'room', 'room__floor', 'room__floor__building',
-        )
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(room__floor__building__organization=user.organization)
+        ).all()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -120,8 +112,4 @@ class StayRecordViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['created_at']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = StayRecord.objects.select_related('resident', 'recorded_by')
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(resident__organization=user.organization)
+        return StayRecord.objects.select_related('resident', 'recorded_by').all()

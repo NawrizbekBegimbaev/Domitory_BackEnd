@@ -4,8 +4,10 @@ import { reportsApi } from '../api/endpoints'
 import type { SummaryReport, OccupancyBuilding, Debtor } from '../types'
 import StatCard from '../components/StatCard'
 import { formatMoney } from '../utils/format'
+import { useTranslation } from '../i18n'
 
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const [summary, setSummary] = useState<SummaryReport | null>(null)
   const [occupancy, setOccupancy] = useState<OccupancyBuilding[]>([])
   const [debtors, setDebtors] = useState<Debtor[]>([])
@@ -26,8 +28,8 @@ export default function DashboardPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="text-text-muted text-sm">Панель / Главная</div>
-          <h1 className="text-2xl font-bold mt-1">Главная</h1>
+          <div className="text-text-muted text-sm">{t('navHome')}</div>
+          <h1 className="text-2xl font-bold mt-1">{t('dashTitle')}</h1>
         </div>
         <div className="text-text-secondary text-sm">{today}</div>
       </div>
@@ -35,22 +37,22 @@ export default function DashboardPage() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard
           icon={<Users size={18} className="text-accent" />}
-          label="Жильцов"
+          label={t('dashResidents')}
           value={summary?.total_residents ?? '—'}
         />
         <StatCard
           icon={<BedDouble size={18} className="text-accent" />}
-          label="Свободных мест"
+          label={t('dashFreeBeds')}
           value={summary?.free_beds ?? '—'}
         />
         <StatCard
           icon={<Banknote size={18} className="text-red-400" />}
-          label="Задолженность"
+          label={t('dashDebt')}
           value={summary ? `${formatMoney(summary.total_debt)} UZS` : '—'}
         />
         <StatCard
           icon={<TrendingUp size={18} className="text-green-400" />}
-          label="Собрано за месяц"
+          label={t('dashCollected')}
           value={summary ? `${formatMoney(summary.collected_this_month)} UZS` : '—'}
         />
       </div>
@@ -59,15 +61,15 @@ export default function DashboardPage() {
         {/* Occupancy */}
         <div className="col-span-2 bg-dark-card border border-dark-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">Занятость корпусов</h2>
+            <h2 className="font-semibold">{t('dashOccupancy')}</h2>
           </div>
           <table className="w-full">
             <thead>
               <tr className="text-text-muted text-xs uppercase">
-                <th className="text-left py-2">Корпус</th>
-                <th className="text-center py-2">Мест</th>
-                <th className="text-center py-2">Занято</th>
-                <th className="py-2">Загрузка</th>
+                <th className="text-left py-2">{t('building')}</th>
+                <th className="text-center py-2">{t('dashCapacity')}</th>
+                <th className="text-center py-2">{t('dashOccupied')}</th>
+                <th className="py-2">{t('dashLoad')}</th>
               </tr>
             </thead>
             <tbody>
@@ -90,7 +92,7 @@ export default function DashboardPage() {
                 </tr>
               ))}
               {occupancy.length === 0 && (
-                <tr><td colSpan={4} className="py-8 text-center text-text-muted">Нет данных</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-text-muted">{t('noData')}</td></tr>
               )}
             </tbody>
           </table>
@@ -98,7 +100,7 @@ export default function DashboardPage() {
 
         {/* Top debtors */}
         <div className="bg-dark-card border border-dark-border rounded-xl p-5">
-          <h2 className="font-semibold mb-4">Топ должников</h2>
+          <h2 className="font-semibold mb-4">{t('dashTopDebtors')}</h2>
           <div className="space-y-3">
             {debtors.slice(0, 5).map((d) => (
               <div key={d.id} className="flex items-center gap-3">
@@ -111,12 +113,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-semibold text-red-400">{formatMoney(d.debt)}</div>
-                  <div className="text-[10px] text-text-muted">UZS долг</div>
+                  <div className="text-[10px] text-text-muted">UZS</div>
                 </div>
               </div>
             ))}
             {debtors.length === 0 && (
-              <div className="text-text-muted text-sm text-center py-4">Нет должников</div>
+              <div className="text-text-muted text-sm text-center py-4">{t('dashNoDebtors')}</div>
             )}
           </div>
         </div>

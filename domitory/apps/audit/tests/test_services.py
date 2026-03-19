@@ -7,28 +7,24 @@ from apps.audit.services import AuditService
 @pytest.mark.django_db
 class TestAuditServiceLog:
 
-    def test_creates_log_entry(self, user, organization):
+    def test_creates_log_entry(self, user, building):
         log = AuditService.log(
-            user=user,
-            action='create',
-            instance=organization,
-            changes={'name': 'test'},
-            ip_address='127.0.0.1',
+            user=user, action='create', instance=building,
+            changes={'name': 'test'}, ip_address='127.0.0.1',
         )
         assert log.pk is not None
         assert log.user == user
         assert log.action == 'create'
-        assert log.model_name == 'Organization'
-        assert log.object_id == str(organization.pk)
+        assert log.model_name == 'Building'
         assert log.changes == {'name': 'test'}
         assert log.ip_address == '127.0.0.1'
 
-    def test_log_without_changes(self, user, organization):
-        log = AuditService.log(user=user, action='delete', instance=organization)
+    def test_log_without_changes(self, user, building):
+        log = AuditService.log(user=user, action='delete', instance=building)
         assert log.changes == {}
 
-    def test_log_without_ip(self, user, organization):
-        log = AuditService.log(user=user, action='update', instance=organization)
+    def test_log_without_ip(self, user, building):
+        log = AuditService.log(user=user, action='update', instance=building)
         assert log.ip_address is None
 
 
@@ -62,11 +58,9 @@ class TestGetChanges:
     def test_no_changes(self):
         class FakeInstance:
             name = 'Same'
-        changes = AuditService.get_changes(FakeInstance(), {'name': 'Same'})
-        assert changes == {}
+        assert AuditService.get_changes(FakeInstance(), {'name': 'Same'}) == {}
 
     def test_ignores_missing_fields(self):
         class FakeInstance:
             pass
-        changes = AuditService.get_changes(FakeInstance(), {'new_field': 'value'})
-        assert changes == {}
+        assert AuditService.get_changes(FakeInstance(), {'new_field': 'value'}) == {}

@@ -15,8 +15,4 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['timestamp']
 
     def get_queryset(self):
-        user = self.request.user
-        qs = AuditLog.objects.select_related('user')
-        if user.role_name == 'platform_admin':
-            return qs
-        return qs.filter(user__organization=user.organization)
+        return AuditLog.objects.select_related('user').all()

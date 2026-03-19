@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from apps.residents.models import Guardian, Resident, ResidentDocument
+from apps.residents.models import Faculty, Guardian, Resident, ResidentDocument
+
+
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = ['id', 'name']
+        read_only_fields = ['id']
 
 
 class GuardianSerializer(serializers.ModelSerializer):
@@ -29,7 +36,7 @@ class ResidentListSerializer(serializers.ModelSerializer):
         model = Resident
         fields = [
             'id', 'full_name', 'gender', 'phone_number',
-            'university_id', 'faculty', 'course', 'status',
+            'university_id', 'faculty', 'course', 'status', 'photo',
         ]
 
 
@@ -40,7 +47,7 @@ class ResidentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resident
         fields = [
-            'id', 'organization', 'full_name', 'birth_date', 'gender',
+            'id', 'full_name', 'birth_date', 'gender',
             'phone_number', 'email', 'university_id', 'faculty', 'course',
             'photo', 'status', 'notes',
             'guardians', 'documents',
@@ -53,7 +60,7 @@ class ResidentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resident
         fields = [
-            'id', 'organization', 'full_name', 'birth_date', 'gender',
+            'id', 'full_name', 'birth_date', 'gender',
             'phone_number', 'email', 'university_id', 'faculty', 'course',
             'photo', 'status', 'notes',
         ]

@@ -11,18 +11,12 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserReadSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
-    organization_name = serializers.CharField(
-        source='organization.name',
-        read_only=True,
-        default=None,
-    )
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'full_name', 'role',
-            'organization', 'organization_name',
-            'phone_number', 'is_active',
+            'phone_number', 'photo', 'is_active',
             'date_joined',
         ]
 
@@ -34,7 +28,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'full_name', 'password',
-            'role', 'organization', 'phone_number', 'is_active',
+            'role', 'phone_number', 'photo',
         ]
         read_only_fields = ['id']
 
@@ -43,7 +37,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'full_name', 'role', 'organization',
+            'full_name', 'role',
             'phone_number', 'is_active',
         ]
 
@@ -55,16 +49,10 @@ class LoginSerializer(serializers.Serializer):
 
 class MeSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
-    organization_name = serializers.CharField(
-        source='organization.name',
-        read_only=True,
-        default=None,
-    )
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'full_name', 'role',
-            'organization', 'organization_name',
             'phone_number', 'date_joined',
         ]

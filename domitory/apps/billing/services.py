@@ -5,39 +5,95 @@ from django.utils import timezone
 
 from apps.audit.services import AuditService
 from apps.billing.models import Charge, Payment, PaymentAllocation
-from apps.residents.models import Resident
 
 
 class ChargeService:
 
     @staticmethod
     @transaction.atomic
-    def generate_monthly_charges(organization, tariff_plan, month, year):
-        """Generate charges for all active residents in an organization."""
-        residents = Resident.objects.filter(
-            organization=organization,
-            status=Resident.Status.ACTIVE,
-        )
+    def generate_charges_for_assignment(contract, room):
+        """Auto-generate monthly charges based on contract period and room price.
+
+        Creates one Charge per month from contract.start_date to contract.end_date.
+        Amount = room.monthly_price. Status = pending (immediate debt).
+        """
+        import datetime
+
+        start = contract.start_date
+        end = contract.end_date
+        # Ensure date objects (not strings)
+        if isinstance(start, str):
+            start = datetime.date.fromisoformat(start)
+        if isinstance(end, str):
+            end = datetime.date.fromisoformat(end)
+        price = room.monthly_price
+
+        if price <= 0:
+            return 0
 
         created = 0
-        skipped = 0
-        for resident in residents:
-            _, was_created = Charge.objects.get_or_create(
-                resident=resident,
+        current = datetime.date(start.year, start.month, 1)
+        # Include end month if end_date is not the 1st (resident lives part of that month)
+        if end.day > 1:
+            # Include end month
+            if end.month == 12:
+                end_boundary = datetime.date(end.year + 1, 1, 1)
+            else:
+                end_boundary = datetime.date(end.year, end.month + 1, 1)
+        else:
+            end_boundary = datetime.date(end.year, end.month, 1)
+
+        while current < end_boundary:
+            month = current.month
+            year = current.year
+            due = datetime.date(year, month, 25)
+            if due < start:
+                due = start
+
+            existing = Charge.objects.filter(
+                resident=contract.resident,
                 period_month=month,
                 period_year=year,
-                defaults={
-                    'tariff_plan': tariff_plan,
-                    'amount': tariff_plan.amount,
-                    'due_date': timezone.datetime(year, month, 25).date(),
-                },
-            )
-            if was_created:
-                created += 1
-            else:
-                skipped += 1
+            ).first()
 
-        return {'created': created, 'skipped': skipped}
+            if existing:
+                if existing.status == Charge.Status.CANCELLED:
+                    # Reactivate cancelled charge with new price
+                    from apps.billing.models import PaymentAllocation
+                    PaymentAllocation.objects.filter(charge=existing).delete()
+                    existing.amount = price
+                    existing.status = Charge.Status.PENDING
+                    existing.due_date = due
+                    existing.save(update_fields=['amount', 'status', 'due_date'])
+                    created += 1
+                elif existing.amount != price:
+                    # Different room price — update charge amount
+                    # Clear allocations so FIFO can re-distribute
+                    from apps.billing.models import PaymentAllocation
+                    PaymentAllocation.objects.filter(charge=existing).delete()
+                    existing.amount = price
+                    existing.status = Charge.Status.PENDING
+                    existing.save(update_fields=['amount', 'status'])
+                    created += 1
+                # else: same price, already exists — skip
+            else:
+                Charge.objects.create(
+                    resident=contract.resident,
+                    period_month=month,
+                    period_year=year,
+                    amount=price,
+                    due_date=due,
+                    status=Charge.Status.PENDING,
+                )
+                created += 1
+
+            # Move to next month
+            if current.month == 12:
+                current = datetime.date(current.year + 1, 1, 1)
+            else:
+                current = datetime.date(current.year, current.month + 1, 1)
+
+        return created
 
 
 class PaymentService:
@@ -82,7 +138,6 @@ class PaymentService:
             )
             remaining -= alloc_amount
 
-            # Update charge status
             new_paid = charge.paid_amount
             if new_paid >= charge.amount:
                 charge.status = Charge.Status.PAID
@@ -103,37 +158,34 @@ class BalanceService:
 
     @staticmethod
     def get_resident_balance(resident):
-        """Calculate total debt for a resident.
-
-        debt = SUM(unpaid charges) - SUM(allocations for those same charges)
-        """
-        unpaid_statuses = [
-            Charge.Status.PENDING,
-            Charge.Status.OVERDUE,
-            Charge.Status.PARTIALLY_PAID,
-        ]
-
-        unpaid_charges = Charge.objects.filter(
+        # All non-cancelled charges
+        active_charges = Charge.objects.filter(
             resident=resident,
-            status__in=unpaid_statuses,
-        )
+        ).exclude(status=Charge.Status.CANCELLED)
 
-        total_charges = unpaid_charges.aggregate(
+        total_charges = active_charges.aggregate(
             total=models.Sum('amount'),
         )['total'] or Decimal('0')
 
-        total_allocated = PaymentAllocation.objects.filter(
-            charge__in=unpaid_charges,
-        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
-
+        # All completed payments
         total_payments = Payment.objects.filter(
             resident=resident,
             status=Payment.Status.COMPLETED,
         ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
 
+        # Total allocated to charges
+        total_allocated = PaymentAllocation.objects.filter(
+            charge__resident=resident,
+        ).exclude(
+            charge__status=Charge.Status.CANCELLED,
+        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
+
+        # debt > 0 means owes money, debt < 0 means overpayment
+        debt = total_charges - total_payments
+
         return {
             'total_charges': total_charges,
             'total_paid': total_allocated,
             'total_payments': total_payments,
-            'debt': total_charges - total_allocated,
+            'debt': debt,
         }

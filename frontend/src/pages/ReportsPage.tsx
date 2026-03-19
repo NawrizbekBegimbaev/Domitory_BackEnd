@@ -6,13 +6,20 @@ import type { Debtor, SummaryReport, OccupancyBuilding } from '../types'
 import StatCard from '../components/StatCard'
 import Pagination from '../components/Pagination'
 import { formatMoney, formatDate, formatDateTime } from '../utils/format'
-
-const reportTabs = ['Должники', 'Занятость', 'Оплаты', 'Жильцы', 'Сводка']
-
-const months = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+import { useTranslation } from '../i18n'
 
 export default function ReportsPage() {
-  const [activeTab, setActiveTab] = useState('Должники')
+  const { t } = useTranslation()
+
+  const reportTabs = [
+    { key: 'debtors', label: t('reportDebtors') },
+    { key: 'occupancy', label: t('reportOccupancy') },
+    { key: 'payments', label: t('reportPayments') },
+    { key: 'residents', label: t('reportResidents') },
+    { key: 'summary', label: t('reportSummary') },
+  ]
+
+  const [activeTab, setActiveTab] = useState('debtors')
   const [debtors, setDebtors] = useState<Debtor[]>([])
   const [occupancy, setOccupancy] = useState<OccupancyBuilding[]>([])
   const [paymentsReport, setPaymentsReport] = useState<{ payments: any[]; total: string; count: number }>({ payments: [], total: '0', count: 0 })
@@ -52,43 +59,43 @@ export default function ReportsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Отчёты</h1>
-          <p className="text-text-muted text-sm">Отчёт на {new Date().toLocaleDateString('ru-RU')}</p>
+          <h1 className="text-2xl font-bold">{t('reportsTitle')}</h1>
+          <p className="text-text-muted text-sm">{t('reportsTitle')} {new Date().toLocaleDateString('ru-RU')}</p>
         </div>
       </div>
 
       <div className="flex gap-1 mb-6 bg-dark-card border border-dark-border rounded-lg p-1 w-fit">
-        {reportTabs.map((t) => (
+        {reportTabs.map((tab) => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-md text-sm transition-colors ${
-              activeTab === t ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
+              activeTab === tab.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
             }`}
           >
-            {t}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ДОЛЖНИКИ */}
-      {activeTab === 'Должники' && (
+      {/* DEBTORS */}
+      {activeTab === 'debtors' && (
         <>
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <StatCard icon={<Users size={18} className="text-accent" />} label="Должников" value={debtors.length} />
-            <StatCard icon={<Banknote size={18} className="text-red-400" />} label="Общий долг" value={`${formatMoney(totalDebt)} UZS`} />
-            <StatCard icon={<FileText size={18} className="text-yellow-400" />} label="Средний долг" value={`${formatMoney(Math.round(avgDebt))} UZS`} />
+            <StatCard icon={<Users size={18} className="text-accent" />} label={t('reportDebtors')} value={debtors.length} />
+            <StatCard icon={<Banknote size={18} className="text-red-400" />} label={t('dashDebt')} value={`${formatMoney(totalDebt)} UZS`} />
+            <StatCard icon={<FileText size={18} className="text-yellow-400" />} label={t('dashDebt')} value={`${formatMoney(Math.round(avgDebt))} UZS`} />
           </div>
           <div className="bg-dark-card border border-dark-border rounded-xl">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-border text-text-muted text-xs uppercase">
                   <th className="text-left py-3 px-4">#</th>
-                  <th className="text-left py-3 px-4">ФИО</th>
-                  <th className="text-left py-3 px-4">Факультет</th>
-                  <th className="text-right py-3 px-4">Начислено</th>
-                  <th className="text-right py-3 px-4">Оплачено</th>
-                  <th className="text-right py-3 px-4">Долг</th>
+                  <th className="text-left py-3 px-4">{t('fullName')}</th>
+                  <th className="text-left py-3 px-4">{t('faculty')}</th>
+                  <th className="text-right py-3 px-4">{t('charged')}</th>
+                  <th className="text-right py-3 px-4">{t('paid')}</th>
+                  <th className="text-right py-3 px-4">{t('dashDebt')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,15 +112,15 @@ export default function ReportsPage() {
                     <td className="py-3 px-4 text-right"><span className="text-red-400 font-semibold">{formatMoney(d.debt)}</span></td>
                   </tr>
                 ))}
-                {debtors.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-text-muted">Нет должников</td></tr>}
+                {debtors.length === 0 && <tr><td colSpan={6} className="py-8 text-center text-text-muted">{t('dashNoDebtors')}</td></tr>}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {/* ЗАНЯТОСТЬ */}
-      {activeTab === 'Занятость' && (
+      {/* OCCUPANCY */}
+      {activeTab === 'occupancy' && (
         <div className="space-y-4">
           {occupancy.map((b) => (
             <div key={b.building_id} className="bg-dark-card border border-dark-border rounded-xl p-5">
@@ -122,18 +129,18 @@ export default function ReportsPage() {
                 <span className="text-accent font-bold text-lg">{b.percentage}%</span>
               </div>
               <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                <div><div className="text-text-muted text-xs">Мест</div><div className="text-xl font-bold">{b.capacity}</div></div>
-                <div><div className="text-text-muted text-xs">Занято</div><div className="text-xl font-bold">{b.occupancy}</div></div>
-                <div><div className="text-text-muted text-xs">Свободно</div><div className="text-xl font-bold text-green-400">{b.free}</div></div>
+                <div><div className="text-text-muted text-xs">{t('capacity')}</div><div className="text-xl font-bold">{b.capacity}</div></div>
+                <div><div className="text-text-muted text-xs">{t('occupied')}</div><div className="text-xl font-bold">{b.occupancy}</div></div>
+                <div><div className="text-text-muted text-xs">{t('free')}</div><div className="text-xl font-bold text-green-400">{b.free}</div></div>
               </div>
               <table className="w-full">
                 <thead><tr className="text-text-muted text-xs uppercase border-b border-dark-border">
-                  <th className="text-left py-2">Этаж</th><th className="text-center py-2">Комнат</th><th className="text-center py-2">Мест</th><th className="text-center py-2">Занято</th><th className="text-center py-2">Свободно</th><th className="py-2">Загрузка</th>
+                  <th className="text-left py-2">{t('floor')}</th><th className="text-center py-2">{t('rooms')}</th><th className="text-center py-2">{t('capacity')}</th><th className="text-center py-2">{t('occupied')}</th><th className="text-center py-2">{t('free')}</th><th className="py-2">{t('dashLoad')}</th>
                 </tr></thead>
                 <tbody>
                   {b.floors.map((f) => (
                     <tr key={f.floor_number} className="border-b border-dark-border/50">
-                      <td className="py-2">{f.floor_number} этаж</td>
+                      <td className="py-2">{f.floor_number} {t('floor').toLowerCase()}</td>
                       <td className="text-center">{f.rooms}</td>
                       <td className="text-center">{f.capacity}</td>
                       <td className="text-center">{f.occupancy}</td>
@@ -152,33 +159,33 @@ export default function ReportsPage() {
               </table>
             </div>
           ))}
-          {occupancy.length === 0 && <div className="text-center py-12 text-text-muted">Нет данных</div>}
+          {occupancy.length === 0 && <div className="text-center py-12 text-text-muted">{t('noData')}</div>}
         </div>
       )}
 
-      {/* ОПЛАТЫ */}
-      {activeTab === 'Оплаты' && (
+      {/* PAYMENTS */}
+      {activeTab === 'payments' && (
         <>
           <div className="flex gap-3 mb-4">
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="text-sm">
-              <option value="">Все способы</option>
-              <option value="cash">Наличные</option>
-              <option value="bank_transfer">Банк. перевод</option>
+              <option value="">{t('all')}</option>
+              <option value="cash">{t('paymentCash')}</option>
+              <option value="bank_transfer">{t('paymentTransfer')}</option>
             </select>
           </div>
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <StatCard icon={<FileText size={18} className="text-accent" />} label="Оплат" value={paymentsReport.count} />
-            <StatCard icon={<Banknote size={18} className="text-green-400" />} label="Сумма" value={`${formatMoney(paymentsReport.total)} UZS`} />
+            <StatCard icon={<FileText size={18} className="text-accent" />} label={t('reportPayments')} value={paymentsReport.count} />
+            <StatCard icon={<Banknote size={18} className="text-green-400" />} label={t('paymentAmount')} value={`${formatMoney(paymentsReport.total)} UZS`} />
           </div>
           <div className="bg-dark-card border border-dark-border rounded-xl">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-border text-text-muted text-xs uppercase">
-                  <th className="text-left py-3 px-4">Дата</th>
-                  <th className="text-left py-3 px-4">Жилец</th>
-                  <th className="text-right py-3 px-4">Сумма</th>
-                  <th className="text-left py-3 px-4">Способ</th>
-                  <th className="text-left py-3 px-4">Принял</th>
+                  <th className="text-left py-3 px-4">{t('paymentDate')}</th>
+                  <th className="text-left py-3 px-4">{t('resident')}</th>
+                  <th className="text-right py-3 px-4">{t('paymentAmount')}</th>
+                  <th className="text-left py-3 px-4">{t('paymentMethod')}</th>
+                  <th className="text-left py-3 px-4">{t('acceptedBy')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -187,48 +194,48 @@ export default function ReportsPage() {
                     <td className="py-3 px-4 text-sm">{formatDate(p.payment_date)}</td>
                     <td className="py-3 px-4 text-sm">{p.resident_name}</td>
                     <td className="py-3 px-4 text-right text-green-400 font-medium">+{formatMoney(p.amount)}</td>
-                    <td className="py-3 px-4 text-sm text-text-secondary">{p.payment_method === 'cash' ? 'Наличные' : 'Перевод'}</td>
+                    <td className="py-3 px-4 text-sm text-text-secondary">{p.payment_method === 'cash' ? t('paymentCash') : t('paymentTransfer')}</td>
                     <td className="py-3 px-4 text-sm text-text-muted">{p.recorded_by_name || '—'}</td>
                   </tr>
                 ))}
-                {paymentsReport.payments.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-text-muted">Нет оплат</td></tr>}
+                {paymentsReport.payments.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-text-muted">{t('noPayments')}</td></tr>}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {/* ЖИЛЬЦЫ */}
-      {activeTab === 'Жильцы' && (
+      {/* RESIDENTS */}
+      {activeTab === 'residents' && (
         <>
           <div className="flex gap-3 mb-4">
             <select value={residentStatus} onChange={(e) => setResidentStatus(e.target.value)} className="text-sm">
-              <option value="">Все статусы</option>
-              <option value="active">Активные</option>
-              <option value="evicted">Выселенные</option>
-              <option value="graduated">Выпустились</option>
+              <option value="">{t('all')}</option>
+              <option value="active">{t('tabActive')}</option>
+              <option value="evicted">{t('tabEvicted')}</option>
+              <option value="graduated">{t('tabGraduated')}</option>
             </select>
             <select value={residentGender} onChange={(e) => setResidentGender(e.target.value)} className="text-sm">
-              <option value="">Все</option>
-              <option value="male">Мужчины</option>
-              <option value="female">Женщины</option>
+              <option value="">{t('all')}</option>
+              <option value="male">{t('male')}</option>
+              <option value="female">{t('female')}</option>
             </select>
           </div>
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <StatCard icon={<Users size={18} className="text-accent" />} label="Всего" value={residentsReport.length} />
-            <StatCard icon={<Users size={18} className="text-green-400" />} label="Активных" value={residentsReport.filter((r: any) => r.status === 'active').length} />
-            <StatCard icon={<Users size={18} className="text-red-400" />} label="Выселенных" value={residentsReport.filter((r: any) => r.status === 'evicted').length} />
-            <StatCard icon={<Users size={18} className="text-blue-400" />} label="Выпустившихся" value={residentsReport.filter((r: any) => r.status === 'graduated').length} />
+            <StatCard icon={<Users size={18} className="text-accent" />} label={t('all')} value={residentsReport.length} />
+            <StatCard icon={<Users size={18} className="text-green-400" />} label={t('tabActive')} value={residentsReport.filter((r: any) => r.status === 'active').length} />
+            <StatCard icon={<Users size={18} className="text-red-400" />} label={t('tabEvicted')} value={residentsReport.filter((r: any) => r.status === 'evicted').length} />
+            <StatCard icon={<Users size={18} className="text-blue-400" />} label={t('tabGraduated')} value={residentsReport.filter((r: any) => r.status === 'graduated').length} />
           </div>
           <div className="bg-dark-card border border-dark-border rounded-xl">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-border text-text-muted text-xs uppercase">
-                  <th className="text-left py-3 px-4">ФИО</th>
-                  <th className="text-left py-3 px-4">Студ. ID</th>
-                  <th className="text-left py-3 px-4">Факультет</th>
-                  <th className="text-center py-3 px-4">Курс</th>
-                  <th className="text-left py-3 px-4">Статус</th>
+                  <th className="text-left py-3 px-4">{t('fullName')}</th>
+                  <th className="text-left py-3 px-4">{t('studentId')}</th>
+                  <th className="text-left py-3 px-4">{t('faculty')}</th>
+                  <th className="text-center py-3 px-4">{t('course')}</th>
+                  <th className="text-left py-3 px-4">{t('status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,26 +247,26 @@ export default function ReportsPage() {
                     <td className="py-3 px-4 text-center">{r.course || '—'}</td>
                     <td className="py-3 px-4">
                       <span className={`text-sm font-medium ${r.status === 'active' ? 'text-green-400' : r.status === 'evicted' ? 'text-red-400' : 'text-blue-400'}`}>
-                        {r.status === 'active' ? 'Активный' : r.status === 'evicted' ? 'Выселен' : 'Выпустился'}
+                        {r.status === 'active' ? t('statusActive') : r.status === 'evicted' ? t('statusEvicted') : t('statusGraduated')}
                       </span>
                     </td>
                   </tr>
                 ))}
-                {residentsReport.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-text-muted">Нет данных</td></tr>}
+                {residentsReport.length === 0 && <tr><td colSpan={5} className="py-8 text-center text-text-muted">{t('noData')}</td></tr>}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {/* СВОДКА */}
-      {activeTab === 'Сводка' && summary && (
+      {/* SUMMARY */}
+      {activeTab === 'summary' && summary && (
         <div>
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <StatCard icon={<Users size={18} className="text-accent" />} label="Жильцов" value={summary.total_residents} />
-            <StatCard icon={<Banknote size={18} className="text-green-400" />} label="Оплачено UZS" value={formatMoney(paymentsReport.total)} />
-            <StatCard icon={<Banknote size={18} className="text-red-400" />} label="Задолженность UZS" value={formatMoney(summary.total_debt)} />
-            <StatCard icon={<TrendingUp size={18} className="text-accent" />} label="Процент оплаты" value={
+            <StatCard icon={<Users size={18} className="text-accent" />} label={t('dashResidents')} value={summary.total_residents} />
+            <StatCard icon={<Banknote size={18} className="text-green-400" />} label={t('paid')} value={formatMoney(paymentsReport.total)} />
+            <StatCard icon={<Banknote size={18} className="text-red-400" />} label={t('dashDebt')} value={formatMoney(summary.total_debt)} />
+            <StatCard icon={<TrendingUp size={18} className="text-accent" />} label={t('reportPayments')} value={
               paymentsReport.total && summary.total_debt
                 ? `${Math.round(parseFloat(paymentsReport.total) / (parseFloat(paymentsReport.total) + parseFloat(summary.total_debt)) * 100)}%`
                 : '—'
@@ -267,9 +274,9 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* Оплаты по способу */}
+            {/* Payments by method */}
             <div className="bg-dark-card border border-dark-border rounded-xl p-5">
-              <h3 className="font-semibold mb-4">Оплаты по способу</h3>
+              <h3 className="font-semibold mb-4">{t('reportPayments')}</h3>
               {(() => {
                 const cashPayments = paymentsReport.payments.filter((p: any) => p.payment_method === 'cash')
                 const bankPayments = paymentsReport.payments.filter((p: any) => p.payment_method === 'bank_transfer')
@@ -282,7 +289,7 @@ export default function ReportsPage() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span>Наличные</span>
+                        <span>{t('paymentCash')}</span>
                         <span className="text-text-secondary">{cashPct}% — {formatMoney(cashTotal)} UZS</span>
                       </div>
                       <div className="h-3 bg-dark-border rounded-full overflow-hidden">
@@ -291,7 +298,7 @@ export default function ReportsPage() {
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span>Банк. перевод</span>
+                        <span>{t('paymentTransfer')}</span>
                         <span className="text-text-secondary">{bankPct}% — {formatMoney(bankTotal)} UZS</span>
                       </div>
                       <div className="h-3 bg-dark-border rounded-full overflow-hidden">
@@ -303,20 +310,20 @@ export default function ReportsPage() {
               })()}
             </div>
 
-            {/* Начисления vs Оплаты */}
+            {/* Charges vs Payments */}
             <div className="bg-dark-card border border-dark-border rounded-xl p-5">
-              <h3 className="font-semibold mb-4">Начисления vs Оплаты</h3>
+              <h3 className="font-semibold mb-4">{t('charged')} vs {t('reportPayments')}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">Оплачено</span>
+                  <span className="text-text-secondary">{t('paid')}</span>
                   <span className="text-green-400 font-bold">{formatMoney(paymentsReport.total)} UZS</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary">Задолженность</span>
+                  <span className="text-text-secondary">{t('dashDebt')}</span>
                   <span className="text-red-400 font-bold">{formatMoney(summary.total_debt)} UZS</span>
                 </div>
                 <div className="border-t border-dark-border pt-3 flex justify-between text-sm">
-                  <span className="text-accent font-medium">Остаток</span>
+                  <span className="text-accent font-medium">{t('remaining')}</span>
                   <span className="text-accent font-bold">{formatMoney(summary.total_debt)} UZS</span>
                 </div>
               </div>

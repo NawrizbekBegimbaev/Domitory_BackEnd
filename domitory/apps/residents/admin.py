@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.residents.models import Guardian, Resident, ResidentDocument
+from apps.residents.models import Faculty, Guardian, Resident, ResidentDocument
+
+
+@admin.register(Faculty)
+class FacultyAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
 
 
 class GuardianInline(admin.TabularInline):
@@ -19,7 +25,7 @@ class ResidentAdmin(admin.ModelAdmin):
         'full_name', 'university_id', 'gender', 'faculty',
         'course', 'status', 'phone_number',
     ]
-    list_filter = ['status', 'gender', 'faculty', 'organization']
+    list_filter = ['status', 'gender', 'faculty']
     search_fields = ['full_name', 'university_id', 'phone_number']
     inlines = [GuardianInline, DocumentInline]
 

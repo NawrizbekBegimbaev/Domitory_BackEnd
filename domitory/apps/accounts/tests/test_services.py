@@ -22,13 +22,12 @@ class TestAuthServiceLogin:
         result = AuthService.login('nobody@test.com', 'testpass123')
         assert result is None
 
-    def test_login_inactive_user(self, organization, role_admin):
-        user = User.objects.create_user(
+    def test_login_inactive_user(self, role_admin):
+        User.objects.create_user(
             email='inactive@test.com',
             password='testpass123',
             full_name='Inactive User',
             role=role_admin,
-            organization=organization,
             is_active=False,
         )
         result = AuthService.login('inactive@test.com', 'testpass123')
@@ -38,13 +37,12 @@ class TestAuthServiceLogin:
 @pytest.mark.django_db
 class TestAuthServiceCreateUser:
 
-    def test_create_user(self, organization, role_admin):
+    def test_create_user(self, role_admin):
         data = {
             'email': 'new@test.com',
             'password': 'newpass123',
             'full_name': 'New User',
             'role': role_admin,
-            'organization': organization,
         }
         user = AuthService.create_user(data)
         assert user.pk is not None
@@ -53,13 +51,12 @@ class TestAuthServiceCreateUser:
         assert user.check_password('newpass123')
         assert not user.check_password('wrongpass')
 
-    def test_create_user_password_is_hashed(self, organization, role_admin):
+    def test_create_user_password_is_hashed(self, role_admin):
         data = {
             'email': 'hash@test.com',
             'password': 'plain123',
             'full_name': 'Hash Test',
             'role': role_admin,
-            'organization': organization,
         }
         user = AuthService.create_user(data)
         assert user.password != 'plain123'

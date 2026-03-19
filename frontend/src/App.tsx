@@ -10,13 +10,9 @@ import RoomsPage from './pages/RoomsPage'
 import ContractsPage from './pages/ContractsPage'
 import FinancePage from './pages/FinancePage'
 import NewPaymentPage from './pages/NewPaymentPage'
-import TariffsPage from './pages/TariffsPage'
-import GenerateChargesPage from './pages/GenerateChargesPage'
-import DiscountsPage from './pages/DiscountsPage'
 import ReportsPage from './pages/ReportsPage'
 import AuditPage from './pages/AuditPage'
 import UsersPage from './pages/UsersPage'
-import OrganizationsPage from './pages/OrganizationsPage'
 import BuildingsPage from './pages/BuildingsPage'
 import FloorsPage from './pages/FloorsPage'
 
@@ -47,13 +43,9 @@ export default function App() {
             <Route path="buildings" element={<BuildingsPage />} />
             <Route path="buildings/:buildingId/floors" element={<FloorsPage />} />
             <Route path="rooms" element={<RoomsPage />} />
-            <Route path="organizations" element={<OrganizationsPage />} />
             <Route path="contracts" element={<ContractsPage />} />
             <Route path="finance" element={<FinancePage />} />
             <Route path="finance/payment/new" element={<NewPaymentPage />} />
-            <Route path="finance/tariffs" element={<TariffsPage />} />
-            <Route path="finance/charges/generate" element={<GenerateChargesPage />} />
-            <Route path="finance/discounts" element={<DiscountsPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="users" element={<UsersPage />} />

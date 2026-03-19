@@ -10,7 +10,7 @@ class SummaryReportView(APIView):
     permission_classes = [IsAuthenticated, IsSecurityStaff]
 
     def get(self, request):
-        data = ReportService.summary(request.user.organization)
+        data = ReportService.summary()
         return Response(data)
 
 
@@ -19,7 +19,7 @@ class OccupancyReportView(APIView):
 
     def get(self, request):
         building_id = request.query_params.get('building')
-        data = ReportService.occupancy(request.user.organization, building_id)
+        data = ReportService.occupancy(building_id)
         return Response(data)
 
 
@@ -29,7 +29,7 @@ class AvailableRoomsReportView(APIView):
     def get(self, request):
         building_id = request.query_params.get('building')
         gender = request.query_params.get('gender')
-        data = ReportService.available_rooms(request.user.organization, building_id, gender)
+        data = ReportService.available_rooms(building_id, gender)
         return Response(list(data))
 
 
@@ -37,7 +37,7 @@ class DebtorsReportView(APIView):
     permission_classes = [IsAuthenticated, IsSecurityStaff]
 
     def get(self, request):
-        data = ReportService.debtors(request.user.organization)
+        data = ReportService.debtors()
         return Response(list(data))
 
 
@@ -46,7 +46,6 @@ class PaymentsReportView(APIView):
 
     def get(self, request):
         data = ReportService.payments_report(
-            organization=request.user.organization,
             date_from=request.query_params.get('date_from'),
             date_to=request.query_params.get('date_to'),
             method=request.query_params.get('method'),
@@ -59,7 +58,6 @@ class ResidentsReportView(APIView):
 
     def get(self, request):
         data = ReportService.residents_report(
-            organization=request.user.organization,
             status_filter=request.query_params.get('status'),
             faculty=request.query_params.get('faculty'),
             gender=request.query_params.get('gender'),

@@ -37,7 +37,7 @@ class TestValidateGenderPolicy:
         RoomService.validate_gender_policy(room_male_only, resident)  # no raise
 
     def test_male_only_room_rejects_female(self, room_male_only, female_resident):
-        with pytest.raises(ValidationError, match='male only'):
+        with pytest.raises(ValidationError, match='для мужчин'):
             RoomService.validate_gender_policy(room_male_only, female_resident)
 
     def test_female_only_room_rejects_male(self, floor, resident):
@@ -47,7 +47,7 @@ class TestValidateGenderPolicy:
             capacity=2,
             gender_policy='female_only',
         )
-        with pytest.raises(ValidationError, match='female only'):
+        with pytest.raises(ValidationError, match='для женщин'):
             RoomService.validate_gender_policy(female_room, resident)
 
     def test_female_only_room_accepts_female(self, floor, female_resident):

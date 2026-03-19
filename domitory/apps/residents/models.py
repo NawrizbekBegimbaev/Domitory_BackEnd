@@ -5,46 +5,49 @@ from common.mixins import TimestampMixin
 from common.validators import phone_validator
 
 
+class Faculty(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField('Название', max_length=150, unique=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Факультет'
+        verbose_name_plural = 'Факультеты'
+
+    def __str__(self):
+        return self.name
+
+
 class Resident(TimestampMixin):
     class Gender(models.TextChoices):
-        MALE = 'male', 'Male'
-        FEMALE = 'female', 'Female'
+        MALE = 'male', 'Мужской'
+        FEMALE = 'female', 'Женский'
 
     class Status(models.TextChoices):
-        ACTIVE = 'active', 'Active'
-        EVICTED = 'evicted', 'Evicted'
-        GRADUATED = 'graduated', 'Graduated'
-        SUSPENDED = 'suspended', 'Suspended'
+        PENDING = 'pending', 'Ожидает'
+        ACTIVE = 'active', 'Активный'
+        EVICTED = 'evicted', 'Выселен'
+        GRADUATED = 'graduated', 'Выпустился'
+        SUSPENDED = 'suspended', 'Приостановлен'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    organization = models.ForeignKey(
-        'organizations.Organization',
-        on_delete=models.CASCADE,
-        related_name='residents',
-    )
-    full_name = models.CharField('Full name', max_length=150)
-    birth_date = models.DateField('Birth date', null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=Gender.choices)
-    phone_number = models.CharField(
-        max_length=17,
-        blank=True,
-        validators=[phone_validator],
-    )
-    email = models.EmailField(blank=True)
-    university_id = models.CharField('Student ID', max_length=50)
-    faculty = models.CharField('Faculty', max_length=150, blank=True)
-    course = models.PositiveIntegerField('Course', null=True, blank=True)
-    photo = models.ImageField(upload_to='residents/photos/', blank=True)
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.ACTIVE,
-    )
-    notes = models.TextField(blank=True)
+    full_name = models.CharField('ФИО', max_length=150)
+    birth_date = models.DateField('Дата рождения', null=True, blank=True)
+    gender = models.CharField('Пол', max_length=10, choices=Gender.choices)
+    phone_number = models.CharField('Телефон', max_length=17, blank=True, validators=[phone_validator])
+    email = models.EmailField('Email', blank=True)
+    university_id = models.CharField('Студ. билет', max_length=50)
+    faculty = models.CharField('Факультет', max_length=150, blank=True)
+    course = models.PositiveIntegerField('Курс', null=True, blank=True)
+    photo = models.ImageField('Фото', upload_to='residents/photos/', blank=True)
+    status = models.CharField('Статус', max_length=20, choices=Status.choices, default=Status.PENDING)
+    notes = models.TextField('Заметки', blank=True)
 
     class Meta:
         ordering = ['full_name']
-        unique_together = [('organization', 'university_id')]
+        unique_together = []
+        verbose_name = 'Жилец'
+        verbose_name_plural = 'Жильцы'
 
     def __str__(self):
         return self.full_name
@@ -52,33 +55,24 @@ class Resident(TimestampMixin):
 
 class Guardian(TimestampMixin):
     class Relationship(models.TextChoices):
-        FATHER = 'father', 'Father'
-        MOTHER = 'mother', 'Mother'
-        SIBLING = 'sibling', 'Sibling'
-        UNCLE = 'uncle', 'Uncle'
-        AUNT = 'aunt', 'Aunt'
-        OTHER = 'other', 'Other'
+        FATHER = 'father', 'Отец'
+        MOTHER = 'mother', 'Мать'
+        SIBLING = 'sibling', 'Брат/Сестра'
+        UNCLE = 'uncle', 'Дядя'
+        AUNT = 'aunt', 'Тётя'
+        OTHER = 'other', 'Другое'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    resident = models.ForeignKey(
-        Resident,
-        on_delete=models.CASCADE,
-        related_name='guardians',
-    )
-    full_name = models.CharField('Full name', max_length=150)
-    relationship = models.CharField(
-        max_length=20,
-        choices=Relationship.choices,
-        default=Relationship.OTHER,
-    )
-    phone_number = models.CharField(
-        max_length=17,
-        validators=[phone_validator],
-    )
-    is_emergency_contact = models.BooleanField(default=False)
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='guardians', verbose_name='Жилец')
+    full_name = models.CharField('ФИО', max_length=150)
+    relationship = models.CharField('Родство', max_length=20, choices=Relationship.choices, default=Relationship.OTHER)
+    phone_number = models.CharField('Телефон', max_length=17, validators=[phone_validator])
+    is_emergency_contact = models.BooleanField('Экстренный контакт', default=False)
 
     class Meta:
         ordering = ['full_name']
+        verbose_name = 'Опекун'
+        verbose_name_plural = 'Опекуны'
 
     def __str__(self):
         return f'{self.full_name} ({self.get_relationship_display()})'
@@ -86,27 +80,20 @@ class Guardian(TimestampMixin):
 
 class ResidentDocument(TimestampMixin):
     class DocumentType(models.TextChoices):
-        PASSPORT = 'passport', 'Passport'
-        STUDENT_ID = 'student_id', 'Student ID'
-        CONTRACT = 'contract', 'Contract'
-        MEDICAL = 'medical', 'Medical certificate'
-        OTHER = 'other', 'Other'
+        ID_CARD = 'id_card', 'ID-карта'
+        PASSPORT = 'passport', 'Паспорт'
+        DRIVERS_LICENSE = 'drivers_license', 'Водительское удостоверение'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    resident = models.ForeignKey(
-        Resident,
-        on_delete=models.CASCADE,
-        related_name='documents',
-    )
-    document_type = models.CharField(
-        max_length=20,
-        choices=DocumentType.choices,
-    )
-    document_number = models.CharField(max_length=100, blank=True)
-    file = models.FileField(upload_to='residents/documents/')
+    resident = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='documents', verbose_name='Жилец')
+    document_type = models.CharField('Тип документа', max_length=20, choices=DocumentType.choices)
+    document_number = models.CharField('Номер документа', max_length=100, blank=True)
+    file = models.FileField('Файл', upload_to='residents/documents/')
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = 'Документ'
+        verbose_name_plural = 'Документы'
 
     def __str__(self):
         return f'{self.get_document_type_display()} - {self.resident.full_name}'
