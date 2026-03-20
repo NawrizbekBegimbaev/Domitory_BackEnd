@@ -47,7 +47,7 @@ class User(AbstractUser):
     email = models.EmailField('Email', unique=True)
     full_name = models.CharField('ФИО', max_length=150)
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True, blank=True, related_name='users', verbose_name='Роль')
-    phone_number = models.CharField('Телефон', max_length=17, blank=True, validators=[phone_validator])
+    phone_number = models.CharField('Телефон', max_length=17, blank=True, null=True, unique=True, validators=[phone_validator])
     photo = models.ImageField('Фото', upload_to='users/photos/', blank=True)
     telegram_id = models.BigIntegerField('Telegram ID', null=True, blank=True, unique=True)
 
@@ -60,6 +60,11 @@ class User(AbstractUser):
         ordering = ['full_name']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def save(self, *args, **kwargs):
+        if not self.phone_number:
+            self.phone_number = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.full_name

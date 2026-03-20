@@ -5,15 +5,75 @@
 **Dormitory** — коммерческая платформа управления университетским общежитием.
 Заменяет бумажный учёт (тетради, Excel) и автоматизирует работу администрации.
 
-### Три этапа развития
+### Этапы развития
 
-| Этап | Цель | Пользователи |
-|------|------|--------------|
-| **1 (текущий)** | Административная веб-платформа | Сотрудники университета |
-| **2** | Мобильное приложение для студентов | + студенты |
-| **3** | Онлайн-оплата (Payme / Click) | + платёжные провайдеры |
+| Этап | Цель | Статус |
+|------|------|--------|
+| **1** | Административная веб-платформа | ГОТОВО |
+| **1.5** | Мобильное приложение для админов (Flutter) | ГОТОВО |
+| **2** | Мобильное приложение для студентов | Не начат |
+| **3** | Онлайн-оплата (Payme / Click) | Не начат |
 
-**Сейчас реализуем: Этап 1.**
+---
+
+## Деплой и инфраструктура
+
+| Компонент | URL / Адрес |
+|-----------|-------------|
+| **Веб-приложение** | https://begimbaev-dormitory.uk |
+| **API** | https://begimbaev-dormitory.uk/api/v1/ |
+| **Сервер** | Hetzner CPX22 (3 vCPU, 4GB RAM, 80GB SSD) |
+| **IP** | 65.108.159.10 |
+| **ОС** | Ubuntu 24.04 |
+| **Домен** | begimbaev-dormitory.uk (Cloudflare) |
+| **SSL** | Cloudflare → Nginx (Full mode) |
+| **DNS** | Cloudflare (Proxied) |
+| **GitHub** | NawrizbekBegimbaev/Domitory_BackEnd |
+
+### Сервисы на сервере
+
+```bash
+# Django backend (Gunicorn)
+systemctl status dormitory
+
+# Telegram bot (long-polling)
+systemctl status dormitory-bot
+
+# Nginx (frontend + reverse proxy)
+systemctl status nginx
+```
+
+### Деплой обновлений
+
+```bash
+# Backend
+rsync -avz domitory/ root@65.108.159.10:/home/dormitory/backend/
+ssh root@65.108.159.10 "source /home/dormitory/venv/bin/activate && cd /home/dormitory/backend && python manage.py migrate && systemctl restart dormitory"
+
+# Frontend
+cd frontend && npm run build
+rsync -avz dist/ root@65.108.159.10:/home/dormitory/frontend/
+
+# Telegram bot
+ssh root@65.108.159.10 "systemctl restart dormitory-bot"
+```
+
+### Переменные окружения (сервер: /home/dormitory/backend/.env)
+
+```
+SECRET_KEY=<generated>
+DEBUG=False
+ALLOWED_HOSTS=begimbaev-dormitory.uk,www.begimbaev-dormitory.uk,65.108.159.10,localhost,127.0.0.1
+CORS_ALLOW_ALL_ORIGINS=False
+CORS_ALLOWED_ORIGINS=https://begimbaev-dormitory.uk,https://www.begimbaev-dormitory.uk
+DATABASE_URL=postgres://dormitory:<password>@localhost:5432/dormitory
+EMAIL_HOST_USER=begimbaev.dormitory@gmail.com
+EMAIL_HOST_PASSWORD=<app_password>
+DEFAULT_FROM_EMAIL=Dormitory <begimbaev.dormitory@gmail.com>
+TELEGRAM_BOT_TOKEN=<token>
+DJANGO_SETTINGS_MODULE=config.settings.production
+SECURE_SSL_REDIRECT=False
+```
 
 ---
 
@@ -21,76 +81,71 @@
 
 | Компонент | Технология |
 |-----------|-----------|
-| Язык | Python 3.12+ |
-| Фреймворк | Django 4.2 LTS |
-| REST API | Django REST Framework 3.15+ |
+| Backend | Python 3.12+, Django 4.2 LTS, DRF 3.15+ |
 | База данных | PostgreSQL 16+ |
 | Аутентификация | SimpleJWT 5.3+ |
 | Фильтрация | django-filter |
 | API-документация | drf-spectacular (OpenAPI 3.0) |
-| Изображения | Pillow |
 | CORS | django-cors-headers |
 | WSGI | Gunicorn |
 | Статика | WhiteNoise |
-| Контейнеры | Docker + docker-compose |
-| Тесты | pytest + pytest-django + factory-boy |
+| Telegram | requests + Bot API |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4 |
+| Мобильное приложение | Flutter 3.41+, Dart 3.11+, Provider |
+| Тесты | pytest, pytest-django, factory-boy, Playwright |
+| i18n | Русский, Узбекский, Каракалпакский |
 
 ---
 
 ## Структура проекта
 
 ```
-domitory/
-├── config/
-│   ├── settings/
-│   │   ├── base.py          # Общие настройки
-│   │   ├── local.py         # DEBUG=True, dev
-│   │   ├── production.py    # DEBUG=False, prod
-│   │   └── test.py          # SQLite in-memory
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
+Domitory_BackEnd/
+├── domitory/                    # Django backend
+│   ├── config/settings/         # base.py, local.py, production.py, test.py
+│   ├── apps/
+│   │   ├── accounts/            # Пользователи, роли, JWT, Telegram OTP, password reset
+│   │   ├── organizations/       # (kept for migration history, URLs removed)
+│   │   ├── inventory/           # Корпуса, этажи, комнаты
+│   │   ├── residents/           # Жильцы, опекуны, документы, факультеты
+│   │   ├── occupancy/           # Договоры, заселение, история, перевод
+│   │   ├── billing/             # Начисления, оплаты, FIFO, авто-генерация
+│   │   ├── reports/             # 6 отчётов
+│   │   └── audit/               # Аудит-лог
+│   ├── common/                  # Миксины, пагинация, ошибки, права, валидаторы
+│   └── requirements/            # base.txt, local.txt, production.txt, test.txt
 │
-├── apps/
-│   ├── accounts/            # Пользователи, роли, JWT
-│   ├── organizations/       # Организации (университеты)
-│   ├── inventory/           # Корпуса, этажи, комнаты
-│   ├── residents/           # Жильцы, опекуны, документы
-│   ├── occupancy/           # Договоры, заселение, история
-│   ├── billing/             # Тарифы, начисления, оплаты
-│   ├── reports/             # Отчёты
-│   └── audit/               # Аудит-лог
+├── frontend/                    # React frontend
+│   └── src/
+│       ├── pages/               # 14 страниц
+│       ├── components/          # Модалки, таблицы, формы
+│       ├── api/                 # Axios клиент
+│       └── i18n/                # ru.ts, uz.ts, kk.ts
 │
-├── common/
-│   ├── mixins.py            # TimestampMixin
-│   ├── pagination.py        # StandardPagination
-│   ├── exceptions.py        # Единый формат ошибок
-│   ├── permissions.py       # RoleBasedPermission
-│   └── validators.py        # Валидатор телефона
+├── mobile_admin/                # Flutter мобильное приложение
+│   └── lib/
+│       ├── core/                # api.dart, theme.dart, auth_provider.dart
+│       ├── screens/
+│       │   ├── login/           # Email + Phone/OTP логин
+│       │   ├── dashboard/       # Статистика, графики
+│       │   ├── residents/       # Список, детали, добавление, редактирование
+│       │   ├── rooms/           # Просмотр комнат
+│       │   ├── buildings/       # CRUD корпусов, этажей, комнат
+│       │   ├── contracts/       # Список, создание договоров
+│       │   ├── finance/         # Платежи, новый платёж
+│       │   ├── reports/         # 3 вкладки отчётов
+│       │   ├── audit/           # Лог действий
+│       │   ├── users/           # Список сотрудников
+│       │   └── menu/            # Навигация + профиль
+│       └── main.dart
 │
-├── requirements/
-│   ├── base.txt
-│   ├── local.txt
-│   └── production.txt
+├── qa/                          # QA тесты (API + E2E)
+│   ├── conftest.py              # TEST_ENV=local|prod
+│   ├── test_api.py              # 72 API теста
+│   └── test_e2e.py              # 50 E2E тестов (Playwright)
 │
-├── docker-compose.yml
-├── .env.example
-└── pytest.ini
-```
-
-Каждый app следует единому паттерну:
-```
-apps/{module}/
-    models.py
-    services.py       <- вся бизнес-логика здесь
-    serializers.py
-    views.py          <- тонкие контроллеры
-    urls.py
-    permissions.py
-    filters.py
-    admin.py
-    tests/
-    migrations/
+├── .gitignore
+└── CLAUDE.md
 ```
 
 ---
@@ -100,156 +155,69 @@ apps/{module}/
 ### 1. Fat Services, Thin Views
 - Вся бизнес-логика — в `services.py`
 - Views: принять запрос → вызвать сервис → вернуть ответ
-- Никакой бизнес-логики в views, serializers, models
 
-### 2. Доменная изоляция
-- Модуль общается с другим модулем ТОЛЬКО через `services.py`
-- Нельзя напрямую делать queryset к чужим моделям из другого модуля
+### 2. Single-tenant (Organization удалена)
+- Нет фильтрации по организации
+- Все данные в одном пространстве
 
-### 3. Organization scope
-- Все бизнес-данные привязаны к `Organization`
-- Каждый queryset в ViewSet фильтруется по организации текущего пользователя:
+### 3. Авто-генерация начислений
+- При назначении комнаты автоматически создаются Charge записи
+- Цена берётся из `room.monthly_price`
+- При переводе — пересчёт начислений
+- При расторжении — возврат переплаты
 
-```python
-def get_queryset(self):
-    if self.request.user.role.name == 'platform_admin':
-        return Model.objects.all()
-    return Model.objects.filter(organization=self.request.user.organization)
-```
-
-### 4. Explicit > Implicit
-- Все импорты явные (никаких `from .models import *`)
-- Все поля сериализаторов перечислены явно
+### 4. FIFO оплата
+- Платёж распределяется по начислениям от старых к новым
+- PaymentAllocation отслеживает привязку
 
 ### 5. Audit everything critical
 - Любое изменение финансовых данных, проживания, договоров — логируется
 
----
-
-## Роли и права (Этап 1)
-
-| Роль | Описание | Ключевые права |
-|------|----------|---------------|
-| `platform_admin` | Суперадмин платформы | Полный доступ ко всему |
-| `university_admin` | Администратор университета | Всё в своей организации |
-| `dorm_manager` | Комендант | Жильцы, комнаты, заселение |
-| `accountant` | Бухгалтер | Тарифы, начисления, оплаты |
-| `security_staff` | Охрана | Только чтение: жильцы, комнаты |
-
-Классы permissions в `apps/accounts/permissions.py`:
-`IsPlatformAdmin`, `IsUniversityAdmin`, `IsDormManager`, `IsAccountant`, `IsSecurityStaff`
+### 6. Уникальность данных
+- `User.email` — unique
+- `User.phone_number` — unique (null допустим)
+- `User.telegram_id` — unique (null допустим)
 
 ---
 
-## Модели данных
+## Роли и права
 
-### accounts
-- `Role` — choices: platform_admin, university_admin, dorm_manager, accountant, security_staff
-- `User` — id(UUID), email(логин), full_name, role(FK), organization(FK), phone, is_active
-
-### organizations
-- `Organization` — id(UUID), name, short_name, org_type, status, contacts, address
-
-### inventory
-- `Building` — id(UUID), organization(FK), name, address, gender_policy, is_active
-- `Floor` — id(UUID), building(FK), number. UNIQUE: (building, number)
-- `Room` — id(UUID), floor(FK), room_number, capacity, current_occupancy(default=0), gender_policy, status, monthly_price. UNIQUE: (floor, room_number). CHECK: occupancy <= capacity
-
-### residents
-- `Resident` — id(UUID), organization(FK), full_name, birth_date, gender, phone, university_id, faculty, course, photo, status, notes. UNIQUE: (organization, university_id)
-- `Guardian` — id(UUID), resident(**FK** — не OneToOne!), full_name, relationship, phone, is_emergency_contact
-- `ResidentDocument` — id(UUID), resident(FK), document_type, document_number, file
-
-### occupancy
-- `AccommodationContract` — resident(FK), building(FK), contract_number(unique), start_date, end_date, status, created_by. CHECK: end > start
-- `RoomAssignment` — contract(FK), resident(FK), room(FK), start_date, end_date(null=проживает), status, assigned_by
-- `StayRecord` — resident(FK), check_in_at, check_out_at, reason, recorded_by
-
-### billing
-- `TariffPlan` — organization(FK), name, amount(decimal), billing_period, is_active
-- `Charge` — resident(FK), tariff_plan(FK), period_month, period_year, amount(decimal), status, due_date. UNIQUE: (resident, month, year)
-- `Payment` — resident(FK), amount(decimal), payment_date, payment_method(cash/bank_transfer), status, recorded_by
-- `PaymentAllocation` — payment(FK), charge(FK), amount(decimal). UNIQUE: (payment, charge)
-- `Discount` — resident(FK), type(percentage/fixed), value, reason, dates, approved_by
-
-### audit
-- `AuditLog` — user(FK), action(create/update/delete), model_name, object_id, changes(JSON), ip_address, timestamp
+| Роль | Описание |
+|------|----------|
+| `platform_admin` | Полный доступ |
+| `university_admin` | Администратор |
+| `dorm_manager` | Комендант |
+| `accountant` | Бухгалтер |
+| `security_staff` | Только чтение |
 
 ---
 
-## Ключевая бизнес-логика
-
-### Заселение жильца
-
-```
-1. Создать Resident
-2. Добавить Guardian (ForeignKey, может быть несколько)
-3. Загрузить документы (ResidentDocument)
-4. Создать AccommodationContract -> status: active
-5. Создать RoomAssignment:
-   Проверить: нет активного назначения у жильца
-   Проверить: room.current_occupancy < room.capacity
-   Проверить: гендерная политика комнаты
-   Проверить: у жильца есть активный договор
-   -> room.current_occupancy += 1
-   -> room.status обновляется (если заполнена -> full)
-6. Создать StayRecord (reason: initial_check_in)
-7. AuditLog
-```
-
-### Выселение жильца
-
-```
-1. Закрыть RoomAssignment -> end_date=today, status=completed
-   -> room.current_occupancy -= 1
-   -> room.status обновляется (если было full -> available)
-2. Расторгнуть AccommodationContract -> status=terminated
-3. StayRecord (reason: eviction)
-4. Resident.status -> evicted
-```
-
-### Перевод в другую комнату
-
-```
-1. Закрыть текущий RoomAssignment -> room_old.current_occupancy -= 1
-2. Создать новый RoomAssignment -> room_new.current_occupancy += 1
-3. StayRecord (reason: transfer)
-```
-
-### Ручная оплата (бухгалтер)
-
-```
-1. Создать Payment (amount, method, date)
-2. Автоматически создать PaymentAllocation:
-   -> Берём начисления от старых к новым (FIFO)
-   -> Распределяем сумму
-3. Обновить статусы Charge:
-   -> paid_amount == charge.amount -> paid
-   -> paid_amount < charge.amount -> partially_paid
-4. AuditLog
-```
-
-### Расчёт задолженности
-
-```
-долг = SUM(charges WHERE status IN [pending, overdue, partially_paid])
-     - SUM(allocations.amount WHERE charge IN (те же))
-```
-
----
-
-## API Endpoints (Этап 1)
+## API Endpoints
 
 Префикс: `/api/v1/`
 
 ```
+# Auth
 POST   /auth/login/
+POST   /auth/login/phone/              # OTP через Telegram
+POST   /auth/login/phone/confirm/
 POST   /auth/refresh/
 GET    /auth/me/
+POST   /auth/password-reset/
+POST   /auth/password-reset/confirm/
+GET    /auth/roles/
 
-GET/POST        /organizations/
-GET/PUT/DELETE  /organizations/{id}/
+# Users
+GET/POST        /users/
+GET/PUT/DELETE  /users/{id}/
 
+# Verify (для создания пользователей)
+POST   /auth/verify-email/send/
+POST   /auth/verify-email/confirm/
+POST   /auth/verify-phone/send/
+POST   /auth/verify-phone/confirm/
+
+# Inventory
 GET/POST        /buildings/
 GET/PUT/DELETE  /buildings/{id}/
 GET/POST        /floors/
@@ -258,13 +226,19 @@ GET/POST        /rooms/
 GET/PUT/DELETE  /rooms/{id}/
 GET             /rooms/available/
 
+# Residents
 GET/POST        /residents/
 GET/PUT/DELETE  /residents/{id}/
 GET/POST        /residents/{id}/guardians/
 GET/POST        /residents/{id}/documents/
 GET             /residents/{id}/balance/
 POST            /residents/{id}/transfer/
+POST            /residents/{id}/withdraw/
 
+# Faculties
+GET/POST        /faculties/
+
+# Contracts & Assignments
 GET/POST        /contracts/
 GET/PUT         /contracts/{id}/
 POST            /contracts/{id}/terminate/
@@ -272,11 +246,12 @@ GET/POST        /assignments/
 GET/PUT         /assignments/{id}/
 POST            /assignments/{id}/close/
 
-GET/POST        /tariffs/
+# Billing
 GET/POST        /charges/
 POST            /charges/generate/
 GET/POST        /payments/
 
+# Reports
 GET             /reports/occupancy/
 GET             /reports/available-rooms/
 GET             /reports/debtors/
@@ -284,201 +259,88 @@ GET             /reports/payments/
 GET             /reports/residents/
 GET             /reports/summary/
 
+# Audit
 GET             /audit/
 ```
 
-Требования ко всем endpoints:
-- Пагинация (page / page_size)
-- Фильтрация (django-filter)
-- Поиск (search_fields)
-- Сортировка (ordering)
-- Единый формат ошибок: `{ "error": { "code": "...", "message": "...", "details": {...} } }`
-
 ---
 
-## Стиль кода
+## Тесты
 
-### Сервис — правильно
+```bash
+# Backend unit тесты (249 тестов)
+cd domitory && pytest
 
-```python
-# apps/occupancy/services.py
-class RoomAssignmentService:
+# API тесты — локально (72 теста)
+pytest qa/test_api.py -v
 
-    @staticmethod
-    @transaction.atomic
-    def assign_resident_to_room(resident, room, contract, assigned_by):
-        # 1. Валидация
-        RoomService.validate_capacity(room)
-        RoomService.validate_gender_policy(room, resident)
-        # 2. Создание
-        assignment = RoomAssignment.objects.create(...)
-        # 3. Побочные эффекты
-        RoomService.increment_occupancy(room)
-        StayRecord.objects.create(...)
-        # 4. Аудит
-        AuditService.log(user=assigned_by, action='create', instance=assignment)
-        return assignment
-```
+# API тесты — прод
+TEST_ENV=prod pytest qa/test_api.py -v
 
-### View — правильно
+# E2E тесты — локально (50 тестов)
+pytest qa/test_e2e.py -v --headed
 
-```python
-# apps/occupancy/views.py
-class RoomAssignmentViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsDormManager]
+# E2E тесты — прод
+TEST_ENV=prod pytest qa/test_e2e.py -v
 
-    def get_queryset(self):
-        return RoomAssignment.objects.filter(
-            resident__organization=self.request.user.organization
-        ).select_related('resident', 'room', 'contract')
-
-    def perform_create(self, serializer):
-        RoomAssignmentService.assign_resident_to_room(
-            resident=serializer.validated_data['resident'],
-            room=serializer.validated_data['room'],
-            contract=serializer.validated_data['contract'],
-            assigned_by=self.request.user,
-        )
-```
-
-### Что НЕЛЬЗЯ делать
-
-```python
-# Бизнес-логика в view — НЕЛЬЗЯ
-def post(self, request):
-    if room.current_occupancy >= room.capacity:  # <- не здесь!
-        return Response(...)
-
-# Прямой импорт чужих моделей между несвязанными модулями — НЕЛЬЗЯ
-# В inventory нельзя: from apps.residents.models import Resident
-
-# Бизнес-логика в serializer — НЕЛЬЗЯ
-def validate(self, data):
-    if data['room'].is_full:  # <- не здесь!
-        raise ...
+# Все QA тесты на проде
+TEST_ENV=prod pytest qa/ -v
 ```
 
 ---
 
-## Настройки (base.py)
+## Flutter мобильное приложение
 
-```python
-AUTH_USER_MODEL = 'accounts.User'
+### Сборка
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',),
-    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
-    'DEFAULT_PAGINATION_CLASS': 'common.pagination.StandardPagination',
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',
-        'rest_framework.filters.OrderingFilter',
-    ],
-    'EXCEPTION_HANDLER': 'common.exceptions.custom_exception_handler',
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-}
+```bash
+# iOS (из ~/mobile_admin_build/ — вне iCloud!)
+cd ~/mobile_admin_build
+flutter build ios --release
+xcrun devicectl device install app --device <UDID> build/ios/iphoneos/Runner.app
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-}
-
-LANGUAGE_CODE = 'ru'
-TIME_ZONE = 'Asia/Tashkent'
+# Android
+cd mobile_admin
+flutter run -d <device_id>
 ```
+
+**ВАЖНО:** iOS билд НЕЛЬЗЯ делать из `~/Documents/` — iCloud добавляет `com.apple.provenance` и codesign падает. Используй `~/mobile_admin_build/`.
+
+### Синхронизация кода перед iOS билдом
+
+```bash
+rsync -av mobile_admin/lib/ ~/mobile_admin_build/lib/
+```
+
+### API URL
+- Прод: `https://begimbaev-dormitory.uk/api/v1`
+- Локал: `http://172.20.10.9:8000/api/v1`
+- Настраивается в `lib/core/api.dart`
 
 ---
 
-## Переменные окружения (.env)
+## Ключевая бизнес-логика
 
-```
-SECRET_KEY=
-DJANGO_SETTINGS_MODULE=config.settings.local
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://user:pass@localhost:5432/dormitory
-CORS_ALLOWED_ORIGINS=http://localhost:3000
-```
+### Заселение
+1. Создать Resident → 2. Guardian + Documents → 3. Contract → 4. RoomAssignment (авто-charges) → 5. StayRecord → 6. AuditLog
 
----
+### Выселение
+1. Terminate Contract → 2. Close Assignment → 3. Refund overpayment → 4. StayRecord → 5. AuditLog
 
-## Зависимости между модулями
+### Перевод
+1. Close old Assignment → 2. Create new Assignment → 3. Recalculate charges → 4. StayRecord
 
-```
-accounts       <- все зависят от него
-organizations  <- зависит от accounts
-inventory      <- зависит от organizations
-residents      <- зависит от organizations
-occupancy      <- зависит от residents, inventory
-billing        <- зависит от residents, organizations
-reports        <- зависит от всех (read-only)
-audit          <- использует accounts, вызывается из всех
-```
-
-Зависимости только вниз по этой цепочке. Нижний модуль никогда не импортирует из верхнего напрямую.
-
----
-
-## Текущее состояние AS-IS
-
-В существующем прототипе (`main/`) критичные архитектурные проблемы:
-- `floor` и `room` хранятся как числа в `Student` (нет связей с Room/Floor)
-- `Payment` не имеет поля суммы — только булево "оплачено/не оплачено"
-- Нет истории проживания, ролей, Organization scope
-
-Задача: переписать проект по новой архитектуре. Старый `main/` удалить после полного переноса.
-
----
-
-## Порядок реализации
-
-```
-Фаза 1  -> config/, common/, .env, Docker, зависимости
-Фаза 2  -> accounts + organizations (AUTH_USER_MODEL, JWT, роли, management commands)
-Фаза 3  -> inventory (Building, Floor, Room, RoomService)
-Фаза 4  -> residents (Resident, Guardian, Document)
-Фаза 5  -> occupancy (Contract, Assignment, StayRecord, все сервисы заселения)
-Фаза 6  -> billing (Tariff, Charge, Payment, Allocation, BillingService)
-Фаза 7  -> audit (AuditLog, middleware, интеграция во все сервисы)
-Фаза 8  -> reports (6 endpoint-ов с реальными данными)
-Фаза 9  -> Django Admin (удобный UI для всех моделей)
-Фаза 10 -> Тесты (покрытие services.py >= 80%)
-Фаза 11 -> Удалить main/, деплой
-```
-
-Не начинать следующую фазу до выполнения критерия готовности текущей.
-
----
-
-## Архитектурная готовность к будущим этапам
-
-Заложить сейчас (НЕ реализовывать, только подготовить):
-- `Role` с закомментированным choices `student` (добавим в Этапе 2)
-- `Payment.payment_method` с закомментированными choices `card`, `online`
-- `Payment.external_reference` поле (для webhook в Этапе 3)
-- Пустые директории `apps/notifications/` и `apps/payments/`
-
----
-
-## Что НЕ входит в Этап 1
-
-- Мобильное приложение для студентов
-- Роль `student` и её логика
-- Онлайн-оплата (Payme / Click)
-- Push-уведомления (Celery / Redis)
-- Бронирование комнат студентами
-- Заявки на ремонт
-
-Не реализовывать это в рамках Этапа 1, даже если кажется несложным.
+### Оплата (FIFO)
+1. Create Payment → 2. Auto PaymentAllocation → 3. Update Charge statuses → 4. AuditLog
 
 ---
 
 ## Правила для Claude Code
 
-1. Перед реализацией фазы — уточни, если что-то неоднозначно
-2. Один app за раз — не переключайся между модулями в середине фазы
-3. Проверяй критерий готовности перед переходом к следующей фазе
-4. Тесты пишем сразу — не откладывай на конец
-5. Не добавляй ничего за пределами scope Этапа 1
-6. При архитектурных решениях — спроси, не решай самостоятельно
-7. Никаких секретов в коде, только через .env
+1. Один app за раз — не переключайся между модулями
+2. Тесты пишем сразу
+3. При архитектурных решениях — спроси
+4. Никаких секретов в коде, только через .env
+5. iOS билд только из `~/mobile_admin_build/`
+6. После изменений в mobile_admin/lib/ — синхронизировать в ~/mobile_admin_build/lib/
+7. После бэкенд изменений — деплой: rsync + migrate + restart
