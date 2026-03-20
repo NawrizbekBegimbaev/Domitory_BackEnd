@@ -1,26 +1,33 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Api {
   // Change this to your server URL
-  static const baseUrl = 'http://10.0.2.2:8000/api/v1'; // Android emulator
+  // static const baseUrl = 'http://172.20.10.9:8000/api/v1'; // Local network
   // static const baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator
-  // static const baseUrl = 'https://yourdomain.com/api/v1'; // Production
+  static const baseUrl = 'http://65.108.159.10/api/v1'; // Production
 
-  static const _storage = FlutterSecureStorage();
+  static Future<String?> get accessToken async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
 
-  static Future<String?> get accessToken => _storage.read(key: 'access_token');
-  static Future<String?> get refreshToken => _storage.read(key: 'refresh_token');
+  static Future<String?> get refreshToken async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('refresh_token');
+  }
 
   static Future<void> saveTokens(String access, String refresh) async {
-    await _storage.write(key: 'access_token', value: access);
-    await _storage.write(key: 'refresh_token', value: refresh);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', access);
+    await prefs.setString('refresh_token', refresh);
   }
 
   static Future<void> clearTokens() async {
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
   }
 
   static Future<Map<String, String>> _headers() async {
@@ -42,7 +49,8 @@ class Api {
         );
         if (refreshResp.statusCode == 200) {
           final data = jsonDecode(refreshResp.body);
-          await _storage.write(key: 'access_token', value: data['access']);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', data['access']);
           return retry();
         }
       }

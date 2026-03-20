@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.env
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Flutter
+mobile_admin/build/
+mobile_admin/.dart_tool/
+mobile_admin/.flutter-plugins
+mobile_admin/.flutter-plugins-dependencies
+mobile_admin/ios/build/
+mobile_admin/ios/Pods/
+mobile_admin/ios/.symlinks/
+mobile_admin/android/.gradle/
+mobile_admin/android/app/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
+*.fig
