@@ -6,7 +6,7 @@ class Api {
   // Change this to your server URL
   // static const baseUrl = 'http://172.20.10.9:8000/api/v1'; // Local network
   // static const baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator
-  static const baseUrl = 'http://65.108.159.10/api/v1'; // Production
+  static const baseUrl = 'https://begimbaev-dormitory.uk/api/v1'; // Production
 
   static Future<String?> get accessToken async {
     final prefs = await SharedPreferences.getInstance();

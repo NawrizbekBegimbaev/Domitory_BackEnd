@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import 'add_resident_screen.dart';
+import 'resident_detail_screen.dart';
 
 class ResidentsScreen extends StatefulWidget {
   const ResidentsScreen({super.key});
@@ -93,14 +95,28 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
               )),
         ),
       ]),
-      floatingActionButton: FloatingActionButton(backgroundColor: AppColors.accent, onPressed: () {}, child: const Icon(Icons.add, color: Colors.white)),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.accent,
+        onPressed: () async {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddResidentScreen()));
+          if (result == true) _load();
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
   Widget _card(dynamic r) {
     final status = r['status'] ?? '';
     final color = status == 'active' ? AppColors.success : status == 'pending' ? AppColors.warning : status == 'evicted' ? AppColors.danger : Colors.blue;
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        final id = r['id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => ResidentDetailScreen(residentId: id)));
+        }
+      },
+      child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
       child: Row(children: [
@@ -120,6 +136,7 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
         ),
         const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
       ]),
+    ),
     );
   }
 }

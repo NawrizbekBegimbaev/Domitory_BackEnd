@@ -5,6 +5,8 @@ import '../../core/auth_provider.dart';
 import '../reports/reports_screen.dart';
 import '../audit/audit_screen.dart';
 import '../users/users_screen.dart';
+import '../contracts/contracts_screen.dart';
+import '../buildings/buildings_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
@@ -33,10 +35,10 @@ class MenuScreen extends StatelessWidget {
           const SizedBox(height: 20),
 
           _menuItem(Icons.description_outlined, 'Договоры', () {
-            // Navigate to contracts screen
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ContractsScreen()));
           }),
           _menuItem(Icons.apartment_outlined, 'Корпуса', () {
-            // Navigate to buildings screen
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const BuildingsScreen()));
           }),
           _menuItem(Icons.bar_chart_outlined, 'Отчёты', () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()));

@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/auth_provider.dart';
+import '../../core/api.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,6 +46,92 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!success && mounted) {
       setState(() { _error = 'Неверный email или пароль'; _loading = false; });
     }
+  }
+
+  void _showForgotPassword() {
+    final resetEmailCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool sending = false;
+        String? dialogError;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Восстановление пароля', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text(
+                'Введите email, указанный при регистрации. Мы отправим инструкции по сбросу пароля.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetEmailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(hintText: 'admin@dormitory.edu'),
+              ),
+              if (dialogError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: AppColors.danger.withAlpha(20), borderRadius: BorderRadius.circular(8)),
+                  child: Text(dialogError!, style: const TextStyle(color: AppColors.danger, fontSize: 12), textAlign: TextAlign.center),
+                ),
+              ],
+            ]),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Отмена'),
+              ),
+              ElevatedButton(
+                onPressed: sending
+                    ? null
+                    : () async {
+                        final email = resetEmailCtrl.text.trim();
+                        if (email.isEmpty) {
+                          setDialogState(() => dialogError = 'Введите email');
+                          return;
+                        }
+                        setDialogState(() { sending = true; dialogError = null; });
+                        try {
+                          final resp = await Api.post('/auth/password-reset/', body: {'email': email});
+                          if (!ctx.mounted) return;
+                          if (resp.statusCode == 200 || resp.statusCode == 204) {
+                            Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Инструкции отправлены на email'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          } else {
+                            String msg;
+                            try {
+                              final body = jsonDecode(resp.body);
+                              msg = body['error']?['message'] ?? body['detail'] ?? 'Ошибка отправки';
+                            } catch (_) {
+                              msg = 'Ошибка ${resp.statusCode}';
+                            }
+                            setDialogState(() { sending = false; dialogError = msg; });
+                          }
+                        } catch (e) {
+                          setDialogState(() { sending = false; dialogError = 'Ошибка сети: $e'; });
+                        }
+                      },
+                child: sending
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Отправить'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _sendOtp() async {
@@ -184,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         ),
         const SizedBox(height: 8),
-        Center(child: TextButton(onPressed: () {}, child: const Text('Забыли пароль?', style: TextStyle(fontSize: 13)))),
+        Center(child: TextButton(onPressed: _showForgotPassword, child: const Text('Забыли пароль?', style: TextStyle(fontSize: 13)))),
       ],
     );
   }

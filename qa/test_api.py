@@ -25,7 +25,9 @@ import requests
 import random
 import string
 
-API_BASE = 'http://127.0.0.1:8000/api/v1'
+import os
+_env = os.environ.get('TEST_ENV', 'local')
+API_BASE = 'https://begimbaev-dormitory.uk/api/v1' if _env == 'prod' else 'http://127.0.0.1:8000/api/v1'
 SUFFIX = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
 
 # Shared test state

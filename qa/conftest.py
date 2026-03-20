@@ -5,16 +5,26 @@ Run: pytest qa/ -v (headless)
 Run: pytest qa/test_api.py -v (API only)
 Run: pytest qa/test_e2e.py -v --headed (E2E only)
 
+Environments:
+  Local:  TEST_ENV=local (default) — localhost:8000 / localhost:5173
+  Prod:   TEST_ENV=prod — begimbaev-dormitory.uk
+
 Requirements:
-  - Backend running on http://127.0.0.1:8000
-  - Frontend running on http://127.0.0.1:5173
   - Admin user: admin@dormitory.uz / admin123
 """
+import os
 import pytest
 import requests
 
-API_BASE = 'http://127.0.0.1:8000/api/v1'
-FRONTEND_URL = 'http://127.0.0.1:5173'
+TEST_ENV = os.environ.get('TEST_ENV', 'local')
+
+if TEST_ENV == 'prod':
+    API_BASE = 'https://begimbaev-dormitory.uk/api/v1'
+    FRONTEND_URL = 'https://begimbaev-dormitory.uk'
+else:
+    API_BASE = 'http://127.0.0.1:8000/api/v1'
+    FRONTEND_URL = 'http://127.0.0.1:5173'
+
 ADMIN_EMAIL = 'admin@dormitory.uz'
 ADMIN_PASSWORD = 'admin123'
 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../finance/new_payment_screen.dart';
+import 'edit_resident_screen.dart';
+import '../contracts/create_contract_screen.dart';
 
 class ResidentDetailScreen extends StatefulWidget {
   final String residentId;
@@ -82,6 +84,309 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
       case 'graduated': return 'Выпустился';
       default: return status;
     }
+  }
+
+  // --- Active contract/assignment helpers ---
+  Map<String, dynamic>? get _activeContract {
+    try {
+      return _contracts.firstWhere((c) => c['status'] == 'active');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic>? get _activeAssignment {
+    try {
+      return _assignments.firstWhere((a) => a['status'] == 'active');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool get _hasActiveContract => _activeContract != null;
+  bool get _hasActiveAssignment => _activeAssignment != null;
+
+  // --- ACTIONS ---
+
+  Future<void> _onEdit() async {
+    if (_resident == null) return;
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditResidentScreen(resident: _resident!)),
+    );
+    if (result == true) _loadAll();
+  }
+
+  Future<void> _onTransfer() async {
+    if (!_hasActiveAssignment) {
+      _showSnack('Нет активного назначения для перевода', isError: true);
+      return;
+    }
+
+    // Load available rooms
+    final roomsResp = await Api.get('/rooms/available/', params: {'page_size': '200'});
+    if (!mounted) return;
+    List<dynamic> rooms = [];
+    if (roomsResp.statusCode == 200) {
+      final body = jsonDecode(roomsResp.body);
+      rooms = body is List ? body : (body['results'] ?? []);
+    }
+    if (rooms.isEmpty) {
+      _showSnack('Нет свободных комнат', isError: true);
+      return;
+    }
+
+    String? selectedRoomId;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (_, controller) => ListView(controller: controller, padding: const EdgeInsets.all(20), children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            const Text('Перевод в другую комнату', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            const SizedBox(height: 4),
+            Text(
+              'Текущая: ${_activeAssignment?['room_detail']?['room_number'] ?? _activeAssignment?['room'] ?? '-'}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            const Text('Выберите новую комнату', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            ...rooms.map((room) {
+              final roomId = room['id'].toString();
+              final isSelected = selectedRoomId == roomId;
+              final occupancy = room['current_occupancy'] ?? 0;
+              final capacity = room['capacity'] ?? 0;
+              return GestureDetector(
+                onTap: () => setSheetState(() => selectedRoomId = roomId),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent.withAlpha(15) : AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.meeting_room_outlined, color: isSelected ? AppColors.accent : AppColors.textMuted, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Комната ${room['room_number'] ?? ''}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
+                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    ])),
+                    if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
+                  ]),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: selectedRoomId != null ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('Перевести'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+
+    if (confirmed != true || selectedRoomId == null || !mounted) return;
+
+    try {
+      final resp = await Api.post('/residents/${widget.residentId}/transfer/', body: {'room_id': selectedRoomId});
+      if (!mounted) return;
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        _showSnack('Жилец переведён');
+        _loadAll();
+      } else {
+        final body = jsonDecode(resp.body);
+        _showSnack(body['error']?['message'] ?? body['detail'] ?? 'Ошибка перевода', isError: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Ошибка: $e', isError: true);
+    }
+  }
+
+  Future<void> _onEvict() async {
+    if (!_hasActiveContract) {
+      _showSnack('Нет активного договора для расторжения', isError: true);
+      return;
+    }
+
+    final contractId = _activeContract!['id'].toString();
+    final contractNumber = _activeContract!['contract_number'] ?? '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Выселить жильца?', style: TextStyle(fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Будет расторгнут договор $contractNumber.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          const Text('Это действие нельзя отменить.', style: TextStyle(color: AppColors.danger, fontSize: 12)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Выселить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final resp = await Api.post('/contracts/$contractId/terminate/');
+      if (!mounted) return;
+      if (resp.statusCode == 200 || resp.statusCode == 204) {
+        _showSnack('Договор расторгнут, жилец выселен');
+        _loadAll();
+      } else {
+        final body = jsonDecode(resp.body);
+        _showSnack(body['error']?['message'] ?? body['detail'] ?? 'Ошибка', isError: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Ошибка: $e', isError: true);
+    }
+  }
+
+  Future<void> _onCreateContract() async {
+    if (_resident == null) return;
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(builder: (_) => CreateContractScreen(preselectedResident: _resident!)),
+    );
+    if (result != null && mounted) {
+      await _loadAll();
+      // If user wants to assign room right away
+      if (result['assign_room'] == true) {
+        _onAssignRoom();
+      }
+    }
+  }
+
+  Future<void> _onAssignRoom() async {
+    if (!_hasActiveContract) {
+      _showSnack('Сначала создайте договор', isError: true);
+      return;
+    }
+
+    // Load available rooms
+    final roomsResp = await Api.get('/rooms/available/', params: {'page_size': '200'});
+    if (!mounted) return;
+    List<dynamic> rooms = [];
+    if (roomsResp.statusCode == 200) {
+      final body = jsonDecode(roomsResp.body);
+      rooms = body is List ? body : (body['results'] ?? []);
+    }
+    if (rooms.isEmpty) {
+      _showSnack('Нет свободных комнат', isError: true);
+      return;
+    }
+
+    String? selectedRoomId;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (_, controller) => ListView(controller: controller, padding: const EdgeInsets.all(20), children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 16),
+            const Text('Назначить комнату', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            const SizedBox(height: 4),
+            Text(
+              _resident?['full_name'] ?? '',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ...rooms.map((room) {
+              final roomId = room['id'].toString();
+              final isSelected = selectedRoomId == roomId;
+              final occupancy = room['current_occupancy'] ?? 0;
+              final capacity = room['capacity'] ?? 0;
+              return GestureDetector(
+                onTap: () => setSheetState(() => selectedRoomId = roomId),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent.withAlpha(15) : AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.meeting_room_outlined, color: isSelected ? AppColors.accent : AppColors.textMuted, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Комната ${room['room_number'] ?? ''}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
+                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                    ])),
+                    if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
+                  ]),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: selectedRoomId != null ? () => Navigator.pop(ctx, true) : null,
+                child: const Text('Назначить'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+
+    if (confirmed != true || selectedRoomId == null || !mounted) return;
+
+    try {
+      final resp = await Api.post('/assignments/', body: {
+        'resident': widget.residentId,
+        'room': selectedRoomId,
+        'contract': _activeContract!['id'].toString(),
+        'start_date': DateTime.now().toIso8601String().substring(0, 10),
+      });
+      if (!mounted) return;
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        _showSnack('Комната назначена');
+        _loadAll();
+      } else {
+        final body = jsonDecode(resp.body);
+        _showSnack(body['error']?['message'] ?? body['detail'] ?? 'Ошибка назначения', isError: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Ошибка: $e', isError: true);
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: isError ? AppColors.danger : AppColors.success),
+    );
   }
 
   @override
@@ -176,14 +481,27 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
             ),
             const SizedBox(height: 12),
 
-            // Action buttons
+            // Primary action buttons row
             Row(children: [
-              _actionButton(Icons.edit_outlined, 'Редактировать', AppColors.accent, () {}),
+              _actionButton(Icons.edit_outlined, 'Редактировать', AppColors.accent, _onEdit),
               const SizedBox(width: 8),
-              _actionButton(Icons.swap_horiz, 'Перевести', AppColors.warning, () {}),
+              _actionButton(Icons.swap_horiz, 'Перевести', AppColors.warning, _onTransfer),
               const SizedBox(width: 8),
-              _actionButton(Icons.logout, 'Выселить', AppColors.danger, () {}),
+              _actionButton(Icons.logout, 'Выселить', AppColors.danger, _onEvict),
             ]),
+
+            // Conditional action buttons
+            if (!_hasActiveContract || !_hasActiveAssignment) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                if (!_hasActiveContract)
+                  Expanded(child: _actionButton(Icons.description_outlined, 'Создать договор', AppColors.success, _onCreateContract)),
+                if (!_hasActiveContract && _hasActiveContract == false && !_hasActiveAssignment)
+                  const SizedBox(width: 8),
+                if (_hasActiveContract && !_hasActiveAssignment)
+                  Expanded(child: _actionButton(Icons.meeting_room_outlined, 'Назначить комнату', Colors.blue, _onAssignRoom)),
+              ]),
+            ],
           ]),
         )),
         SliverPersistentHeader(
@@ -234,7 +552,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
           ]),
         ),
       ),

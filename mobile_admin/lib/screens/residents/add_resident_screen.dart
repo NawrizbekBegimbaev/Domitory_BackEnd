@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
+// image_picker removed — using placeholder for now
 import '../../core/theme.dart';
 import '../../core/api.dart';
 
@@ -89,18 +89,20 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800);
-    if (picked != null && mounted) {
-      setState(() => _photo = File(picked.path));
+    // Photo picker disabled — image_picker not available
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Фото можно загрузить через веб-версию')),
+      );
     }
   }
 
   Future<void> _pickDocFile() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200);
-    if (picked != null && mounted) {
-      setState(() => _docFile = File(picked.path));
+    // File picker disabled — image_picker not available
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Документы можно загрузить через веб-версию')),
+      );
     }
   }
 

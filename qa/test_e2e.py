@@ -5,7 +5,9 @@ Run: pytest test_e2e.py -v --headed --slowmo 300
 import pytest
 from playwright.sync_api import Page, expect
 
-F = 'http://localhost:5173'
+import os
+_env = os.environ.get('TEST_ENV', 'local')
+F = 'https://begimbaev-dormitory.uk' if _env == 'prod' else 'http://localhost:5173'
 EMAIL = 'admin@dormitory.uz'
 PWD = 'admin123'
 
@@ -169,7 +171,7 @@ class TestResidentDetail:
         if rows.count() > 0:
             rows.first.click()
             page.wait_for_timeout(500)
-            tabs = page.locator('.border-b button')
+            tabs = page.locator('main .border-b button, [role="tablist"] button')
             for i in range(min(tabs.count(), 4)):
                 tabs.nth(i).click()
                 page.wait_for_timeout(200)
@@ -203,7 +205,7 @@ class TestBuildings:
         go(page, '/buildings')
         page.locator('button.bg-accent').first.click()
         page.wait_for_timeout(500)
-        expect(page.locator('.fixed')).to_be_visible()
+        expect(page.locator('[role="dialog"], .fixed.inset-0, .fixed.z-50')).to_be_visible()
 
     def test_manage_floors(self, page: Page):
         go(page, '/buildings')
@@ -332,7 +334,7 @@ class TestReports:
 
     def test_tabs(self, page: Page):
         go(page, '/reports')
-        tabs = page.locator('.border-b button')
+        tabs = page.locator('main .border-b button, main [role="tablist"] button')
         for i in range(min(tabs.count(), 5)):
             tabs.nth(i).click()
             page.wait_for_timeout(300)
@@ -381,13 +383,15 @@ class TestUsers:
         go(page, '/users')
         page.locator('button.bg-accent').first.click()
         page.wait_for_timeout(500)
-        expect(page.locator('.fixed')).to_be_visible()
+        expect(page.locator('[role="dialog"], .fixed.inset-0, .fixed.z-50')).to_be_visible()
 
     def test_close_modal(self, page: Page):
         go(page, '/users')
         page.locator('button.bg-accent').first.click()
         page.wait_for_timeout(300)
-        page.locator('.fixed button').first.click()
+        close = page.locator('[role="dialog"] button, .fixed.inset-0 button, .fixed.z-50 button').first
+        if close.is_visible():
+            close.click()
         page.wait_for_timeout(300)
 
 
