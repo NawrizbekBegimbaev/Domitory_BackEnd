@@ -1,78 +1,83 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const bg = Color(0xFF0D0D0D);
-  static const card = Color(0xFF1A1A1A);
-  static const card2 = Color(0xFF222222);
-  static const border = Color(0xFF2A2A2A);
-  static const hover = Color(0xFF2F2F2F);
-  static const accent = Color(0xFFF97316);
-  static const accentHover = Color(0xFFEA580C);
-  static const success = Color(0xFF22C55E);
-  static const danger = Color(0xFFEF4444);
-  static const warning = Color(0xFFEAB308);
-  static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFF9CA3AF);
-  static const textMuted = Color(0xFF6B7280);
+  static const bg = Color(0xFFF2F4F7);          // Warm gray background
+  static const card = Color(0xFFFFFFFF);         // White cards
+  static const card2 = Color(0xFFEEF0F4);       // Slightly darker card
+  static const border = Color(0xFFCDD5DF);       // Visible border
+  static const hover = Color(0xFFE5E9F0);       // Hover state
+  static const accent = Color(0xFF003153);       // Ajou Blue (Prussian Blue)
+  static const accentHover = Color(0xFF002240);  // Ajou Blue darker
+  static const accentLight = Color(0xFF2B7CB8);  // Bright Ajou Blue for badges/links
+  static const success = Color(0xFF15803D);      // Darker green
+  static const danger = Color(0xFFB91C1C);       // Darker red
+  static const warning = Color(0xFFB45309);      // Darker amber
+  static const textPrimary = Color(0xFF111827);  // Near-black text
+  static const textSecondary = Color(0xFF4B5563);// Dark gray text
+  static const textMuted = Color(0xFF6B7280);    // Medium gray text (was too light)
 }
 
 final darkTheme = ThemeData(
-  brightness: Brightness.dark,
+  brightness: Brightness.light,
   scaffoldBackgroundColor: AppColors.bg,
   primaryColor: AppColors.accent,
-  colorScheme: const ColorScheme.dark(
+  colorScheme: const ColorScheme.light(
     primary: AppColors.accent,
-    secondary: AppColors.accent,
+    secondary: AppColors.accentLight,
     surface: AppColors.card,
     error: AppColors.danger,
   ),
   fontFamily: 'Inter',
   appBarTheme: const AppBarTheme(
-    backgroundColor: AppColors.bg,
+    backgroundColor: AppColors.card,
     elevation: 0,
     centerTitle: false,
+    scrolledUnderElevation: 1,
+    surfaceTintColor: Colors.transparent,
     titleTextStyle: TextStyle(
       color: AppColors.accent,
       fontWeight: FontWeight.bold,
       fontSize: 18,
       letterSpacing: 2,
     ),
-    iconTheme: IconThemeData(color: AppColors.textSecondary),
+    iconTheme: IconThemeData(color: AppColors.textPrimary),
   ),
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: AppColors.card,
     selectedItemColor: AppColors.accent,
     unselectedItemColor: AppColors.textMuted,
     type: BottomNavigationBarType.fixed,
-    selectedLabelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-    unselectedLabelStyle: TextStyle(fontSize: 10),
+    elevation: 8,
+    selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+    unselectedLabelStyle: TextStyle(fontSize: 11),
   ),
   cardTheme: CardThemeData(
     color: AppColors.card,
-    elevation: 0,
+    elevation: 2,
+    shadowColor: Colors.black12,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-      side: const BorderSide(color: AppColors.border),
+      borderRadius: BorderRadius.circular(14),
+      side: const BorderSide(color: AppColors.border, width: 0.5),
     ),
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: AppColors.card,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       borderSide: const BorderSide(color: AppColors.border),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       borderSide: const BorderSide(color: AppColors.border),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.accent),
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: AppColors.accent, width: 2),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-    labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
+    labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14, fontWeight: FontWeight.w600),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -80,11 +85,25 @@ final darkTheme = ThemeData(
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+      elevation: 2,
+      shadowColor: AppColors.accent.withAlpha(80),
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: AppColors.textSecondary,
+      side: const BorderSide(color: AppColors.border, width: 1.5),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
     ),
   ),
   textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+    style: TextButton.styleFrom(
+      foregroundColor: AppColors.accentLight,
+      textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+    ),
   ),
   dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
   chipTheme: ChipThemeData(
@@ -92,6 +111,6 @@ final darkTheme = ThemeData(
     selectedColor: AppColors.accent.withAlpha(25),
     side: const BorderSide(color: AppColors.border),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-    labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+    labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
   ),
 );

@@ -16,7 +16,7 @@ export default function Layout({ user, onLogout }: Props) {
     <div className="min-h-screen bg-dark-bg">
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-dark-card border-b border-dark-border flex items-center px-4 z-40">
-        <button onClick={() => setSidebarOpen(true)} className="text-text-muted hover:text-white">
+        <button onClick={() => setSidebarOpen(true)} className="text-text-muted hover:text-accent">
           <Menu size={24} />
         </button>
         <span className="ml-3 font-bold text-accent tracking-widest text-sm">DORMITORY</span>

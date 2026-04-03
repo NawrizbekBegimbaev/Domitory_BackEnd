@@ -90,7 +90,7 @@ export default function ContractsPage() {
               key={tb.key}
               onClick={() => { setTab(tb.key); setPage(1) }}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                tab === tb.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
+                tab === tb.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-accent'
               }`}
             >
               {tb.label}
@@ -116,7 +116,7 @@ export default function ContractsPage() {
           <div className="bg-dark-card border border-dark-border rounded-xl p-5 sticky top-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm text-text-muted">{t('contractsTitle').toUpperCase()}</h3>
-              <button onClick={() => setSelected(null)} className="text-text-muted hover:text-white">x</button>
+              <button onClick={() => setSelected(null)} className="text-text-muted hover:text-accent">x</button>
             </div>
             <div className="text-lg font-bold mb-1">{selected.contract_number}</div>
             <span className={`text-sm font-medium ${statusColors[selected.status]}`}>

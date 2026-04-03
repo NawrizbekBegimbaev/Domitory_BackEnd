@@ -12,10 +12,11 @@ class AllocationInline(admin.TabularInline):
 @admin.register(Charge)
 class ChargeAdmin(admin.ModelAdmin):
     list_display = [
-        'resident', 'period_month', 'period_year',
+        'resident', 'room', 'period_month', 'period_year',
+        'start_day', 'end_day', 'days_charged', 'is_prorated',
         'amount', 'status', 'due_date',
     ]
-    list_filter = ['status', 'period_year', 'period_month']
+    list_filter = ['status', 'period_year', 'period_month', 'is_prorated']
     search_fields = ['resident__full_name']
 
 

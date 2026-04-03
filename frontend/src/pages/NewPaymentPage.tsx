@@ -139,7 +139,7 @@ export default function NewPaymentPage() {
                 <div className="text-accent font-bold">{formatMoney(balance.debt)} UZS</div>
               </div>
             )}
-            <button onClick={() => { setSelectedResident(null); setBalance(null); setSearchQuery('') }} className="text-text-muted hover:text-white ml-2 text-xs">
+            <button onClick={() => { setSelectedResident(null); setBalance(null); setSearchQuery('') }} className="text-text-muted hover:text-accent ml-2 text-xs">
               {t('change')}
             </button>
           </div>

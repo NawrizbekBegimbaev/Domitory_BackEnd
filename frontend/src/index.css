@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-dark-bg: #0d0d0d;
-  --color-dark-card: #1a1a1a;
-  --color-dark-card2: #222222;
-  --color-dark-border: #2a2a2a;
-  --color-dark-hover: #2f2f2f;
-  --color-accent: #f97316;
-  --color-accent-hover: #ea580c;
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
-  --color-warning: #eab308;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #9ca3af;
+  --color-dark-bg: #f2f4f7;
+  --color-dark-card: #ffffff;
+  --color-dark-card2: #eef0f4;
+  --color-dark-border: #cdd5df;
+  --color-dark-hover: #e5e9f0;
+  --color-accent: #003153;
+  --color-accent-hover: #002240;
+  --color-success: #15803d;
+  --color-danger: #b91c1c;
+  --color-warning: #b45309;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
   --color-text-muted: #6b7280;
 }
 
@@ -60,7 +60,7 @@ input[type="number"] {
 
 /* Better table styling */
 tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(0, 49, 83, 0.03);
 }
 
 tbody tr {

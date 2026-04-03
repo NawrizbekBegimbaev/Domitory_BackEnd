@@ -76,6 +76,7 @@ const uz = {
   residentsTitle: 'Yashovchilar',
   residentsInSystem: 'tizimda yashovchilar',
   addResident: "Yashovchi qo'shish",
+  buyFullRoom: "Butun xonani sotib olish",
   searchByNameOrId: 'Ism yoki ID bo\'yicha qidirish',
   tabAll: 'Barchasi',
   tabActive: 'Faol',

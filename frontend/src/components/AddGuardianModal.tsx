@@ -57,7 +57,7 @@ export default function AddGuardianModal({ residentId, residentName, onClose, on
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-lg">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold">{t('addGuardianTitle')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="text-text-muted text-sm mb-6">{t('forResident')} {residentName}</div>
 

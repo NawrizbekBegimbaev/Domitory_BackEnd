@@ -111,6 +111,8 @@ export const assignmentsApi = {
   list: (params?: Record<string, string>) =>
     api.get<PaginatedResponse<RoomAssignment>>('/assignments/', { params }),
   create: (data: Record<string, unknown>) => api.post<RoomAssignment>('/assignments/', data),
+  fullRoom: (data: { room: string; assignments: { resident: string; contract: string }[] }) =>
+    api.post<RoomAssignment[]>('/assignments/full-room/', data),
   close: (id: string) => api.post(`/assignments/${id}/close/`),
   transfer: (id: string, data: { new_room: string }) => api.post(`/assignments/${id}/transfer/`, data),
 }

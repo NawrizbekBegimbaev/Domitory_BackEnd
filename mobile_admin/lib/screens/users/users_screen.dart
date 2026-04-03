@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import 'add_user_screen.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -103,8 +104,9 @@ class _UsersScreenState extends State<UsersScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.accent,
-        onPressed: () {
-          // Navigate to add user screen
+        onPressed: () async {
+          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddUserScreen()));
+          if (result == true) _load();
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -114,7 +116,7 @@ class _UsersScreenState extends State<UsersScreen> {
   void _showUserDetails(dynamic u) {
     final name = u['full_name'] ?? '';
     final email = u['email'] ?? '';
-    final phone = u['phone'] ?? '-';
+    final phone = u['phone_number'] ?? u['phone'] ?? '-';
     final roleName = u['role'] is Map ? u['role']['name'] ?? '' : u['role']?.toString() ?? '';
     final roleLabel = _roleLabels[roleName] ?? roleName;
     final isActive = u['is_active'] ?? true;
@@ -190,6 +192,7 @@ class _UsersScreenState extends State<UsersScreen> {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: InkWell(
         onTap: () => _showUserDetails(u),
@@ -210,7 +213,7 @@ class _UsersScreenState extends State<UsersScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 2),
-              Text(email, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text(email, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -220,7 +223,7 @@ class _UsersScreenState extends State<UsersScreen> {
                 color: AppColors.accent.withAlpha(20),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(roleLabel, style: const TextStyle(color: AppColors.accent, fontSize: 9, fontWeight: FontWeight.w700)),
+              child: Text(roleLabel, style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 4),
             Container(
@@ -231,7 +234,7 @@ class _UsersScreenState extends State<UsersScreen> {
               ),
               child: Text(
                 isActive ? 'Активен' : 'Заблокирован',
-                style: TextStyle(color: isActive ? AppColors.success : AppColors.danger, fontSize: 9, fontWeight: FontWeight.w700),
+                style: TextStyle(color: isActive ? AppColors.success : AppColors.danger, fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
           ]),

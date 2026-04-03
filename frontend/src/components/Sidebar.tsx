@@ -48,8 +48,8 @@ export default function Sidebar({ user, onLogout, mobileOpen = false, onMobileCl
 
   return (
     <aside className={`fixed left-0 top-0 bottom-0 w-56 bg-dark-card border-r border-dark-border flex flex-col z-50 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-dark-border">
-        <Building2 size={24} className="text-accent" />
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-dark-border">
+        <img src="/ajou_logo.png" alt="Ajou" className="w-9 h-9" />
         <div>
           <div className="font-bold text-sm tracking-widest text-accent">DORMITORY</div>
           <div className="text-[10px] text-text-muted uppercase">{roleName.replace('_', ' ')}</div>
@@ -65,7 +65,7 @@ export default function Sidebar({ user, onLogout, mobileOpen = false, onMobileCl
             onClick={onMobileClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive ? 'bg-accent/10 text-accent font-medium' : 'text-text-secondary hover:bg-dark-hover hover:text-white'
+                isActive ? 'bg-accent/10 text-accent font-medium' : 'text-text-secondary hover:bg-dark-hover hover:text-accent'
               }`
             }
           >
@@ -85,7 +85,7 @@ export default function Sidebar({ user, onLogout, mobileOpen = false, onMobileCl
                 key={l}
                 onClick={() => setLang(l)}
                 className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                  lang === l ? 'bg-accent text-white' : 'text-text-muted hover:text-white'
+                  lang === l ? 'bg-accent text-white' : 'text-text-muted hover:text-accent'
                 }`}
               >
                 {l === 'ru' ? 'RU' : l === 'uz' ? 'UZ' : 'QQ'}

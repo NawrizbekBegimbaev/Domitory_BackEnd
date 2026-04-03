@@ -73,6 +73,7 @@ class RoomAssignment(TimestampMixin):
         on_delete=models.CASCADE,
         related_name='assignments',
     )
+    beds_purchased = models.PositiveIntegerField('Мест куплено', default=1)
     start_date = models.DateField('Дата начала')
     end_date = models.DateField('Дата окончания', null=True, blank=True)
     status = models.CharField(

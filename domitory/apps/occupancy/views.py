@@ -81,6 +81,7 @@ class RoomAssignmentViewSet(viewsets.ModelViewSet):
                 room=data['room'],
                 contract=data['contract'],
                 assigned_by=request.user,
+                beds_purchased=data.get('beds_purchased', 1),
             )
         except DjangoValidationError as e:
             return Response(
@@ -89,6 +90,51 @@ class RoomAssignmentViewSet(viewsets.ModelViewSet):
             )
         return Response(
             RoomAssignmentListSerializer(assignment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=['post'], url_path='full-room')
+    def full_room(self, request):
+        """Assign entire room to a group of residents."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from apps.residents.models import Resident
+        from rest_framework import serializers as drf_serializers
+
+        room_id = request.data.get('room')
+        assignments_data = request.data.get('assignments', [])
+
+        if not room_id or not assignments_data:
+            return Response(
+                {'error': {'message': 'room and assignments are required'}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            room = Room.objects.get(pk=room_id)
+        except Room.DoesNotExist:
+            return Response({'error': {'message': 'Room not found'}}, status=status.HTTP_404_NOT_FOUND)
+
+        residents_and_contracts = []
+        for item in assignments_data:
+            try:
+                resident = Resident.objects.get(pk=item['resident'])
+                contract = AccommodationContract.objects.get(pk=item['contract'])
+                residents_and_contracts.append((resident, contract))
+            except (Resident.DoesNotExist, AccommodationContract.DoesNotExist, KeyError) as e:
+                return Response({'error': {'message': str(e)}}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = RoomAssignmentService.assign_full_room(
+                residents_and_contracts, room, assigned_by=request.user,
+            )
+        except DjangoValidationError as e:
+            return Response(
+                {'error': {'message': str(e.message if hasattr(e, 'message') else e.messages[0])}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            [RoomAssignmentListSerializer(a).data for a in result],
             status=status.HTTP_201_CREATED,
         )
 

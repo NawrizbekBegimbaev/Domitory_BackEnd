@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 
 class FloorsScreen extends StatefulWidget {
   final String buildingId;
@@ -169,7 +170,7 @@ class _FloorsScreenState extends State<FloorsScreen> {
               const SizedBox(width: 8),
               Text('${floor['number']} этаж', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(width: 8),
-              Text('${floorRooms.length} комн. · $fOcc зан. · $fFree своб.', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text('${floorRooms.length} комн. · $fOcc зан. · $fFree своб.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               const Spacer(),
               SizedBox(
                 width: 40,
@@ -184,7 +185,7 @@ class _FloorsScreenState extends State<FloorsScreen> {
                 ),
               ),
               const SizedBox(width: 6),
-              Text('$fPct%', style: TextStyle(color: pctColor, fontSize: 10, fontWeight: FontWeight.w700)),
+              Text('$fPct%', style: TextStyle(color: pctColor, fontSize: 12, fontWeight: FontWeight.w700)),
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () => _showFloorForm(floor),
@@ -245,7 +246,7 @@ class _FloorsScreenState extends State<FloorsScreen> {
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 4),
             child: Text('${room['room_number'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
           ),
-          Text('$occupancy/$capacity', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text('$occupancy/$capacity', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Container(height: 3, decoration: BoxDecoration(color: color, borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), bottomRight: Radius.circular(10)))),
         ]),
@@ -833,16 +834,9 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
             child: Row(children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppColors.accent.withAlpha(20),
-                child: Text(
-                  ((a['resident_detail']?['full_name'] ?? a['resident']?.toString() ?? '?')[0]),
-                  style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
+              ResidentAvatar(photoUrl: (a['resident_detail']?['photo'] ?? a['resident_photo'])?.toString(), name: a['resident_detail']?['full_name'] ?? a['resident_name'] ?? '?', radius: 16),
               const SizedBox(width: 10),
-              Expanded(child: Text(a['resident_detail']?['full_name'] ?? 'Жилец #${a['resident']}', style: const TextStyle(fontSize: 13))),
+              Expanded(child: Text(a['resident_detail']?['full_name'] ?? a['resident_name'] ?? 'Жилец', style: const TextStyle(fontSize: 13))),
             ]),
           )),
         // Empty slots
@@ -863,7 +857,7 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
 
   Widget _detail(String label, String value) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+      Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
       Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
     ]);
   }

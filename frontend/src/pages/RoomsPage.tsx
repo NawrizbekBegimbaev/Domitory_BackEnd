@@ -69,10 +69,10 @@ export default function RoomsPage() {
   }
 
   const getRoomBadge = (room: Room) => {
-    if (room.status === 'maintenance') return { label: t('statusMaintenance').toUpperCase(), color: 'bg-yellow-500' }
-    if (room.status === 'closed') return { label: t('statusClosed').toUpperCase(), color: 'bg-gray-500' }
-    if (room.current_occupancy >= room.capacity) return { label: t('statusFull').toUpperCase(), color: 'bg-dark-border' }
-    return { label: t('statusAvailable').toUpperCase(), color: 'bg-green-600' }
+    if (room.status === 'maintenance') return { label: t('statusMaintenance').toUpperCase(), color: 'bg-yellow-500 text-white' }
+    if (room.status === 'closed') return { label: t('statusClosed').toUpperCase(), color: 'bg-gray-500 text-white' }
+    if (room.current_occupancy >= room.capacity) return { label: t('statusFull').toUpperCase(), color: 'bg-dark-border text-text-primary' }
+    return { label: t('statusAvailable').toUpperCase(), color: 'bg-green-600 text-white' }
   }
 
   const statusColor = (room: Room) => {
@@ -167,7 +167,7 @@ export default function RoomsPage() {
                       >
                         <div className="text-lg font-bold">{room.room_number}</div>
                         <div className="text-xs text-text-muted mt-0.5">{room.current_occupancy}/{room.capacity}</div>
-                        <div className={`mt-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded ${badge.color} text-white`}>{badge.label}</div>
+                        <div className={`mt-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded ${badge.color}`}>{badge.label}</div>
                       </div>
                     )
                   })}

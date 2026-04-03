@@ -47,7 +47,7 @@ export default function ResidentsPage() {
             </div>
           )}
           <div>
-            <div className="font-medium text-white">{r.full_name}</div>
+            <div className="font-medium text-text-primary">{r.full_name}</div>
             <div className="text-xs text-text-muted">{r.university_id}</div>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function ResidentsPage() {
               key={tb.key}
               onClick={() => { setTab(tb.key); setPage(1) }}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                tab === tb.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
+                tab === tb.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-accent'
               }`}
             >
               {tb.label}

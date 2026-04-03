@@ -41,7 +41,7 @@ export default function AddRoomModal({ floors, onClose, onCreated }: Props) {
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold">Добавить комнату</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
 
         <div className="space-y-4">
@@ -90,7 +90,7 @@ export default function AddRoomModal({ floors, onClose, onCreated }: Props) {
           <button onClick={handleCreate} disabled={loading || !roomNumber} className="w-full py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-medium text-sm disabled:opacity-50">
             {loading ? 'Создание...' : 'Создать комнату'}
           </button>
-          <button onClick={onClose} className="w-full py-2.5 rounded-lg text-sm text-text-secondary hover:text-white">Отмена</button>
+          <button onClick={onClose} className="w-full py-2.5 rounded-lg text-sm text-text-secondary hover:text-accent">Отмена</button>
         </div>
       </div>
     </div>

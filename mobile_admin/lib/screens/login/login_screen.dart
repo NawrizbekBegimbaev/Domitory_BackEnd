@@ -163,18 +163,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: Column(
               children: [
                 // Logo
-                Container(
-                  width: 64, height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withAlpha(30),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.apartment, color: AppColors.accent, size: 32),
-                ),
-                const SizedBox(height: 16),
+                Image.asset('assets/ajou_logo.png', height: 80),
+                const SizedBox(height: 12),
                 const Text('DORMITORY', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.accent, letterSpacing: 4)),
-                const SizedBox(height: 8),
-                const Text('Система управления общежитием', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                const SizedBox(height: 4),
+                const Text('Ajou University in Tashkent', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 32),
 
                 // Tabs

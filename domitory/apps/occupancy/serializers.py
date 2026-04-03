@@ -55,14 +55,16 @@ class RoomAssignmentListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'contract', 'resident', 'resident_name',
             'room', 'room_number', 'building_name',
-            'start_date', 'end_date', 'status',
+            'beds_purchased', 'start_date', 'end_date', 'status',
         ]
 
 
 class RoomAssignmentCreateSerializer(serializers.ModelSerializer):
+    beds_purchased = serializers.IntegerField(required=False, default=1)
+
     class Meta:
         model = RoomAssignment
-        fields = ['id', 'contract', 'resident', 'room']
+        fields = ['id', 'contract', 'resident', 'room', 'beds_purchased']
         read_only_fields = ['id']
 
 

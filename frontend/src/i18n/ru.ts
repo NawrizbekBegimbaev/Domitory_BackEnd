@@ -76,6 +76,7 @@ const ru = {
   residentsTitle: 'Жильцы',
   residentsInSystem: 'жильцов в системе',
   addResident: 'Добавить жильца',
+  buyFullRoom: 'Купить всю комнату',
   searchByNameOrId: 'Поиск по имени или ID',
   tabAll: 'Все',
   tabActive: 'Активные',

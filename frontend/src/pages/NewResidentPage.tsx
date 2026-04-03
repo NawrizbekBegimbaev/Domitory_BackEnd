@@ -143,7 +143,7 @@ export default function NewResidentPage() {
           <h1 className="text-2xl font-bold">{t('newResidentTitle')}</h1>
           <p className="text-text-muted text-sm">{t('newResidentDesc')}</p>
         </div>
-        <button onClick={() => navigate('/residents')} className="text-text-muted hover:text-white"><X size={24} /></button>
+        <button onClick={() => navigate('/residents')} className="text-text-muted hover:text-accent"><X size={24} /></button>
       </div>
 
       {/* Photo */}

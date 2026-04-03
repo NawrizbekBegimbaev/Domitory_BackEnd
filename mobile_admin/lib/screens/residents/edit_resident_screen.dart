@@ -20,12 +20,13 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _universityIdCtrl;
-  late final TextEditingController _facultyCtrl;
   late final TextEditingController _notesCtrl;
   late int _course;
   late String _gender;
   late String _status;
   DateTime? _birthDate;
+  String? _faculty;
+  List<dynamic> _faculties = [];
 
   static const _genders = {'male': 'Мужской', 'female': 'Женский'};
   static const _statuses = {
@@ -40,11 +41,11 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
     super.initState();
     final r = widget.resident;
     _fullNameCtrl = TextEditingController(text: r['full_name'] ?? '');
-    _phoneCtrl = TextEditingController(text: _extractPhone(r['phone']));
+    _phoneCtrl = TextEditingController(text: _extractPhone(r['phone_number'] ?? r['phone']));
     _emailCtrl = TextEditingController(text: r['email'] ?? '');
     _universityIdCtrl = TextEditingController(text: r['university_id'] ?? '');
-    _facultyCtrl = TextEditingController(text: r['faculty'] ?? '');
     _notesCtrl = TextEditingController(text: r['notes'] ?? '');
+    _faculty = r['faculty'] ?? '';
     _course = r['course'] ?? 1;
     _gender = r['gender'] ?? 'male';
     _status = r['status'] ?? 'active';
@@ -53,6 +54,17 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
         _birthDate = DateTime.parse(r['birth_date'].toString());
       } catch (_) {}
     }
+    _loadFaculties();
+  }
+
+  Future<void> _loadFaculties() async {
+    try {
+      final resp = await Api.get('/faculties/', params: {'page_size': '200'});
+      if (resp.statusCode == 200 && mounted) {
+        final body = jsonDecode(resp.body);
+        setState(() => _faculties = body is List ? body : body['results'] ?? []);
+      }
+    } catch (_) {}
   }
 
   String _extractPhone(dynamic phone) {
@@ -68,7 +80,6 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _universityIdCtrl.dispose();
-    _facultyCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -79,6 +90,7 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
       initialDate: _birthDate ?? DateTime(2000, 1, 1),
       firstDate: DateTime(1960),
       lastDate: DateTime.now(),
+      locale: const Locale('ru'),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -106,12 +118,12 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
         'full_name': _fullNameCtrl.text.trim(),
         'gender': _gender,
         'university_id': _universityIdCtrl.text.trim(),
-        'faculty': _facultyCtrl.text.trim().isNotEmpty ? _facultyCtrl.text.trim() : null,
+        'faculty': _faculty != null && _faculty!.isNotEmpty ? _faculty : null,
         'course': _course,
         'status': _status,
         'notes': _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
       };
-      if (phone.length == 9) body['phone'] = '+998$phone';
+      if (phone.length == 9) body['phone_number'] = '+998$phone';
       if (_emailCtrl.text.trim().isNotEmpty) body['email'] = _emailCtrl.text.trim();
       if (_birthDate != null) {
         body['birth_date'] = '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}';
@@ -175,15 +187,21 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(9),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+                _PhoneFormatter(),
               ],
               decoration: const InputDecoration(
                 labelText: 'Телефон',
                 prefixText: '+998 ',
+                hintText: 'XX XXX XX XX',
                 prefixStyle: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               ),
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              validator: (v) {
+                final digits = v?.replaceAll(' ', '') ?? '';
+                if (digits.isNotEmpty && digits.length != 9) return 'Введите 9 цифр';
+                return null;
+              },
             ),
             const SizedBox(height: 10),
             _textField(_emailCtrl, 'Email', keyboardType: TextInputType.emailAddress),
@@ -201,7 +219,7 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
                   ),
                   controller: TextEditingController(
                     text: _birthDate != null
-                        ? '${_birthDate!.day.toString().padLeft(2, '0')}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.year}'
+                        ? '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}'
                         : '',
                   ),
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
@@ -239,7 +257,29 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
             const SizedBox(height: 12),
             _textField(_universityIdCtrl, 'Студенческий ID', required: true),
             const SizedBox(height: 10),
-            _textField(_facultyCtrl, 'Факультет'),
+            _faculties.isNotEmpty
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+                    child: DropdownButtonFormField<String>(
+                      value: _faculties.any((f) => f['name'] == _faculty) ? _faculty : null,
+                      decoration: const InputDecoration(labelText: 'Факультет', border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, contentPadding: EdgeInsets.zero),
+                      dropdownColor: AppColors.card,
+                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted, size: 20),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('Не выбрано')),
+                        ..._faculties.map((f) => DropdownMenuItem(value: f['name']?.toString() ?? '', child: Text(f['name']?.toString() ?? ''))),
+                      ],
+                      onChanged: (v) => setState(() => _faculty = v),
+                    ),
+                  )
+                : TextFormField(
+                    initialValue: _faculty,
+                    decoration: const InputDecoration(labelText: 'Факультет'),
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    onChanged: (v) => _faculty = v,
+                  ),
             const SizedBox(height: 12),
             const Text('Курс', style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
@@ -347,5 +387,20 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
       style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
       validator: required ? (v) => v == null || v.trim().isEmpty ? 'Обязательное поле' : null : null,
     );
+  }
+}
+
+class _PhoneFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(' ', '');
+    if (digits.length > 9) return oldValue;
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 2 || i == 5 || i == 7) buffer.write(' ');
+      buffer.write(digits[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
 }

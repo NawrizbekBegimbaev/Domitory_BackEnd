@@ -177,7 +177,7 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">{t('addUser')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
 
         {/* Stepper */}
@@ -254,7 +254,7 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
               className="w-full py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium disabled:opacity-50">
               {loading ? t('loading') : t('confirm')}
             </button>
-            <button onClick={() => { setPhoneSkipped(true); setStep(3) }} className="w-full text-center text-sm text-text-muted hover:text-white">
+            <button onClick={() => { setPhoneSkipped(true); setStep(3) }} className="w-full text-center text-sm text-text-muted hover:text-accent">
               {t('skip')}
             </button>
           </div>
@@ -302,7 +302,7 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
               <label className="block text-xs text-text-muted uppercase mb-1">{t('password')} * ({t('minChars')})</label>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="********" className="w-full" style={{ paddingRight: '2.5rem' }} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>

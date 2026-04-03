@@ -111,6 +111,7 @@ export interface RoomAssignment {
   room: string
   room_number?: string
   building_name?: string
+  beds_purchased?: number
   start_date: string
   end_date: string | null
   status: string

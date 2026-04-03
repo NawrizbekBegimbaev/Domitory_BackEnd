@@ -71,7 +71,7 @@ export default function TransferResidentModal({ residentName, currentAssignment,
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-lg">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold">{t('transferToRoom')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
 
         {currentAssignment && (

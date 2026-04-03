@@ -51,7 +51,7 @@ export default function FloorsPage() {
   const getRoomColor = (room: Room) => {
     if (room.status === 'maintenance') return 'bg-yellow-500 text-white'
     if (room.status === 'closed') return 'bg-gray-600 text-white'
-    if (room.current_occupancy >= room.capacity) return 'bg-dark-border text-white'
+    if (room.current_occupancy >= room.capacity) return 'bg-dark-border text-text-primary'
     return 'bg-green-600 text-white'
   }
 
@@ -89,7 +89,7 @@ export default function FloorsPage() {
   return (
     <div>
       <div className="text-text-muted text-sm mb-4">
-        <button onClick={() => navigate('/buildings')} className="hover:text-white">{t('buildingsTitle')}</button>
+        <button onClick={() => navigate('/buildings')} className="hover:text-accent">{t('buildingsTitle')}</button>
         {' > '}{building?.name || '...'}{' > '}{t('floorsTitle')}
       </div>
 
@@ -163,7 +163,7 @@ export default function FloorsPage() {
 
       {building && (
         <div className="mt-6 flex items-center gap-4 text-sm">
-          <button onClick={() => setShowBuildingModal(true)} className="flex items-center gap-2 text-text-secondary hover:text-white transition-colors">
+          <button onClick={() => setShowBuildingModal(true)} className="flex items-center gap-2 text-text-secondary hover:text-accent transition-colors">
             <Pencil size={14} /> {t('editBuilding')}
           </button>
         </div>
@@ -241,7 +241,7 @@ function FloorModal({ buildingId, floor, onClose, onSaved }: { buildingId: strin
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{isEdit ? t('editFloor') : t('newFloor')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="space-y-4">
           <div>
@@ -302,7 +302,7 @@ function RoomModal({ floorId, buildingGenderPolicy, onClose, onSaved }: { floorI
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{t('newRoom')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -368,7 +368,7 @@ function BuildingEditModal({ building, onClose, onSaved }: { building: Building;
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{t('editBuilding')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="space-y-4">
           <div>

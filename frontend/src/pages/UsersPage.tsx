@@ -117,7 +117,7 @@ export default function UsersPage() {
             <div className="bg-dark-card border border-dark-border rounded-xl p-5 sticky top-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs text-text-muted uppercase">{t('details')}</span>
-                <button onClick={() => setSelected(null)} className="text-text-muted hover:text-white"><X size={16} /></button>
+                <button onClick={() => setSelected(null)} className="text-text-muted hover:text-accent"><X size={16} /></button>
               </div>
 
               {/* Photo */}

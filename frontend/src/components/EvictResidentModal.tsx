@@ -50,7 +50,7 @@ export default function EvictResidentModal({ resident, assignment, debt, onClose
           <h2 className="text-lg font-bold flex items-center gap-2 text-red-400">
             <AlertTriangle size={20} /> {t('evictResident')}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
 
         <div className="flex items-center gap-3 mb-4">

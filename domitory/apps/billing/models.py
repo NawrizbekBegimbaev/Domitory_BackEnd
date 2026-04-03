@@ -50,9 +50,20 @@ class Charge(TimestampMixin):
         null=True,
         related_name='charges',
     )
+    room = models.ForeignKey(
+        'inventory.Room',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='charges',
+        verbose_name='Комната',
+    )
     period_month = models.PositiveIntegerField('Месяц')
     period_year = models.PositiveIntegerField('Год')
     amount = models.DecimalField('Сумма', max_digits=12, decimal_places=2)
+    start_day = models.PositiveIntegerField('С дня', null=True, blank=True)
+    end_day = models.PositiveIntegerField('По день', null=True, blank=True)
+    days_charged = models.PositiveIntegerField('Дней', null=True, blank=True)
+    is_prorated = models.BooleanField('Пропорциональный', default=False)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -61,10 +72,26 @@ class Charge(TimestampMixin):
     due_date = models.DateField('Срок оплаты')
 
     class Meta:
-        ordering = ['period_year', 'period_month']
-        unique_together = [('resident', 'period_month', 'period_year')]
+        ordering = ['period_year', 'period_month', 'start_day']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['resident', 'period_month', 'period_year', 'room'],
+                name='unique_charge_per_resident_room_month',
+            ),
+        ]
         verbose_name = 'Начисление'
         verbose_name_plural = 'Начисления'
+
+    @staticmethod
+    def calculate_prorated_amount(monthly_price, year, month, start_day, end_day):
+        import calendar
+        from decimal import Decimal, ROUND_HALF_UP
+        days_in_month = calendar.monthrange(year, month)[1]
+        days = end_day - start_day + 1
+        if days >= days_in_month:
+            return Decimal(str(monthly_price))
+        daily_rate = Decimal(str(monthly_price)) / Decimal(str(days_in_month))
+        return (daily_rate * days).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     def __str__(self):
         return f'{self.resident.full_name} - {self.period_month}/{self.period_year} ({self.amount})'

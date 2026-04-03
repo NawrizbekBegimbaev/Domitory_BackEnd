@@ -67,7 +67,7 @@ class TestAssignResidentToRoom:
     def test_rejects_full_room(self, resident, room, contract, user):
         room.current_occupancy = room.capacity
         room.save()
-        with pytest.raises(ValidationError, match='is full'):
+        with pytest.raises(ValidationError, match='Not enough beds|is full'):
             RoomAssignmentService.assign_resident_to_room(
                 resident, room, contract, user,
             )
@@ -163,7 +163,7 @@ class TestTransferResident:
             current_occupancy=1,
             gender_policy='mixed',
         )
-        with pytest.raises(ValidationError, match='is full'):
+        with pytest.raises(ValidationError, match='Not enough beds|is full'):
             RoomAssignmentService.transfer_resident(assignment, full_room, user)
 
     def test_transfer_rejects_gender_mismatch(self, female_resident, room, building, user, floor):

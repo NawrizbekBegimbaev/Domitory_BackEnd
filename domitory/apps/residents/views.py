@@ -38,13 +38,19 @@ class ResidentViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def perform_destroy(self, instance):
-        from apps.inventory.services import RoomService
+        from apps.inventory.models import Room
         from apps.occupancy.models import RoomAssignment
         active_assignments = RoomAssignment.objects.filter(
             resident=instance, status=RoomAssignment.Status.ACTIVE,
         ).select_related('room')
         for assignment in active_assignments:
-            RoomService.decrement_occupancy(assignment.room)
+            room = assignment.room
+            room.current_occupancy = max(0, room.current_occupancy - assignment.beds_purchased)
+            if room.current_occupancy < room.capacity and room.status == Room.Status.FULL:
+                room.status = Room.Status.AVAILABLE
+            room.save(update_fields=['current_occupancy', 'status'])
+            assignment.status = RoomAssignment.Status.COMPLETED
+            assignment.save(update_fields=['status'])
         instance.delete()
 
     @action(detail=True, methods=['get', 'post'], url_path='guardians')

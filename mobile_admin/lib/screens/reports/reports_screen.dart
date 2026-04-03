@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -157,11 +158,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           Row(children: [
             _statCard('Должников', '${_debtors.length}', AppColors.danger),
             const SizedBox(width: 8),
-            _statCard('Общий долг', '${_formatMoney(totalDebt)} ₽', AppColors.accent),
+            _statCard('Общий долг', '${_formatMoney(totalDebt)} UZS', AppColors.accent),
           ]),
           const SizedBox(height: 8),
           Row(children: [
-            _statCard('Средний долг', '${_formatMoney(avgDebt)} ₽', AppColors.warning),
+            _statCard('Средний долг', '${_formatMoney(avgDebt)} UZS', AppColors.warning),
             const SizedBox(width: 8),
             _statCard('Макс просрочка', '$maxOverdue мес.', AppColors.danger),
           ]),
@@ -187,9 +188,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           border: Border.all(color: AppColors.border),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w500)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
         ]),
       ),
     );
@@ -204,16 +205,10 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.accent.withAlpha(30),
-          child: Text(
-            (d['full_name'] ?? '?')[0],
-            style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-        ),
+        ResidentAvatar(photoUrl: d['photo']?.toString(), name: d['full_name'] ?? '?', radius: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -221,13 +216,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             const SizedBox(height: 2),
             Text(
               '${d['faculty'] ?? ''} · ${d['room_number'] ?? ''}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ]),
         ),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(
-            '${_formatMoney(d['debt'])} ₽',
+            '${_formatMoney(d['debt'])} UZS',
             style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 14),
           ),
           if (monthsOverdue > 0) ...[
@@ -240,7 +235,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               ),
               child: Text(
                 '$monthsOverdue мес.',
-                style: const TextStyle(color: AppColors.danger, fontSize: 9, fontWeight: FontWeight.w700),
+                style: const TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -280,6 +275,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -307,7 +303,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         const SizedBox(height: 6),
         Text(
           '$occupied / $capacity мест занято',
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
       ]),
     );
@@ -334,7 +330,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   Widget _paymentCard(dynamic p) {
     final method = p['payment_method'] ?? '';
     final methodLabel = method == 'cash' ? 'Наличные' : method == 'bank_transfer' ? 'Перевод' : method;
-    final date = p['payment_date'] ?? '';
+    final rawDate = p['payment_date']?.toString() ?? '';
+    String date = rawDate;
+    if (rawDate.length >= 10) {
+      final parts = rawDate.substring(0, 10).split('-');
+      if (parts.length == 3) date = '${parts[2]}.${parts[1]}.${parts[0]}';
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -343,6 +344,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(children: [
         Container(
@@ -359,11 +361,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(p['resident_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 2),
-            Text('$date · $methodLabel', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+            Text('$date · $methodLabel', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
           ]),
         ),
         Text(
-          '+${_formatMoney(p['amount'])} ₽',
+          '+${_formatMoney(p['amount'])} UZS',
           style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ]),

@@ -13,9 +13,13 @@ class AuthProvider extends ChangeNotifier {
   Future<void> init() async {
     _loading = true;
     notifyListeners();
-    final token = await Api.accessToken;
-    if (token != null) {
-      _user = await Api.me();
+    try {
+      final token = await Api.accessToken;
+      if (token != null) {
+        _user = await Api.me().timeout(const Duration(seconds: 10), onTimeout: () => null);
+      }
+    } catch (_) {
+      _user = null;
     }
     _loading = false;
     notifyListeners();

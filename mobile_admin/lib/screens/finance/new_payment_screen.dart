@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 
 class NewPaymentScreen extends StatefulWidget {
   final Map<String, dynamic>? preselectedResident;
@@ -109,6 +110,12 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
     if (mounted) setState(() => _submitting = false);
   }
 
+  double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
   String _formatAmount(double amount) {
     final str = amount.toStringAsFixed(0);
     final buffer = StringBuffer();
@@ -121,7 +128,7 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final debt = (_balance?['debt'] ?? 0).toDouble();
+    final debt = _toDouble(_balance?['debt']);
 
     return Scaffold(
       appBar: AppBar(
@@ -155,11 +162,11 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Row(children: [
-                    CircleAvatar(radius: 16, backgroundColor: AppColors.accent.withAlpha(20), child: Text((r['full_name'] ?? '?')[0], style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold))),
+                    ResidentAvatar(photoUrl: r['photo']?.toString(), name: r['full_name'] ?? '?', radius: 16),
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(r['full_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                      Text('#${r['university_id'] ?? ''} · ${r['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                      Text('#${r['university_id'] ?? ''} · ${r['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                     ])),
                   ]),
                 ),
@@ -175,18 +182,11 @@ class _NewPaymentScreenState extends State<NewPaymentScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.accent.withAlpha(60))),
             child: Row(children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.accent.withAlpha(20),
-                backgroundImage: _selectedResident!['photo'] != null && _selectedResident!['photo'].toString().isNotEmpty ? NetworkImage(_selectedResident!['photo']) : null,
-                child: _selectedResident!['photo'] == null || _selectedResident!['photo'].toString().isEmpty
-                    ? Text((_selectedResident!['full_name'] ?? '?')[0], style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold))
-                    : null,
-              ),
+              ResidentAvatar(photoUrl: _selectedResident!['photo']?.toString(), name: _selectedResident!['full_name'] ?? '?', radius: 20),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(_selectedResident!['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                Text('#${_selectedResident!['university_id'] ?? ''} · ${_selectedResident!['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                Text('#${_selectedResident!['university_id'] ?? ''} · ${_selectedResident!['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ])),
               if (widget.preselectedResident == null)
                 GestureDetector(

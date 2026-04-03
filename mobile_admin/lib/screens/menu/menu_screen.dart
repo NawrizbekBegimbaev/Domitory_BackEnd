@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/auth_provider.dart';
+import '../../core/widgets.dart';
 import '../reports/reports_screen.dart';
 import '../audit/audit_screen.dart';
 import '../users/users_screen.dart';
@@ -27,7 +28,7 @@ class MenuScreen extends StatelessWidget {
     };
 
     return Scaffold(
-      appBar: AppBar(title: const Text('DORMITORY')),
+      appBar: const AjouAppBar(),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

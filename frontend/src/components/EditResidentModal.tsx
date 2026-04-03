@@ -114,7 +114,7 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-2xl">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold">{t('editResident')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="text-text-muted text-sm mb-4 uppercase">
           {resident.full_name} · {resident.university_id}
@@ -144,7 +144,7 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
         <div className="flex gap-4 mb-6 border-b border-dark-border">
           {tabKeys.map((tk) => (
             <button key={tk} onClick={() => setTab(tk)}
-              className={`pb-2 text-sm border-b-2 transition-colors ${tab === tk ? 'border-accent text-accent' : 'border-transparent text-text-secondary hover:text-white'}`}
+              className={`pb-2 text-sm border-b-2 transition-colors ${tab === tk ? 'border-accent text-accent' : 'border-transparent text-text-secondary hover:text-accent'}`}
             >{t(tk)}</button>
           ))}
         </div>

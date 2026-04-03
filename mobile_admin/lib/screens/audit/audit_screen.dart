@@ -192,6 +192,7 @@ class _AuditScreenState extends State<AuditScreen> {
           color: AppColors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isExpanded ? color.withAlpha(80) : AppColors.border),
+          boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +211,7 @@ class _AuditScreenState extends State<AuditScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   const SizedBox(height: 2),
-                  Text(timeStr, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                  Text(timeStr, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 ]),
               ),
               Icon(
@@ -229,7 +230,7 @@ class _AuditScreenState extends State<AuditScreen> {
                 _detailRow('ID объекта', entry['object_id'].toString()),
               if (entry['changes'] != null) ...[
                 const SizedBox(height: 8),
-                const Text('Изменения:', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+                const Text('Изменения:', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 _buildChanges(entry['changes']),
               ],
@@ -244,8 +245,8 @@ class _AuditScreenState extends State<AuditScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(children: [
-        Text('$label: ', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
+        Text('$label: ', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
       ]),
     );
   }

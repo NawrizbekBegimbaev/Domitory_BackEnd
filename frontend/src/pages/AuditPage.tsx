@@ -92,7 +92,7 @@ export default function AuditPage() {
           return (
             <div key={key} className="flex items-center gap-2 text-sm">
               <span className="text-text-muted min-w-[120px]">{label}:</span>
-              <span className="text-white">{String(value)}</span>
+              <span className="text-text-primary">{String(value)}</span>
             </div>
           )
         })}

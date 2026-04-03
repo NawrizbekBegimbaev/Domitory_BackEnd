@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'http_logger.dart';
 
 class Api {
   // Change this to your server URL
@@ -59,32 +60,54 @@ class Api {
     return response;
   }
 
+  static Future<http.Response> _logged(String method, Uri uri, Future<http.Response> Function() fn, {String? reqBody}) async {
+    final sw = Stopwatch()..start();
+    try {
+      final resp = await fn();
+      sw.stop();
+      HttpLogger.instance.log(HttpLogEntry(
+        timestamp: DateTime.now(), method: method, url: uri.toString(),
+        statusCode: resp.statusCode, requestBody: reqBody,
+        responseBody: resp.body.length <= 5000 ? resp.body : '${resp.body.substring(0, 5000)}...', durationMs: sw.elapsedMilliseconds,
+      ));
+      return resp;
+    } catch (e) {
+      sw.stop();
+      HttpLogger.instance.log(HttpLogEntry(
+        timestamp: DateTime.now(), method: method, url: uri.toString(),
+        requestBody: reqBody, durationMs: sw.elapsedMilliseconds, error: e.toString(),
+      ));
+      rethrow;
+    }
+  }
+
   static Future<http.Response> get(String path, {Map<String, String>? params}) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: params);
-    final resp = await http.get(uri, headers: await _headers());
+    final h = await _headers();
+    final resp = await _logged('GET', uri, () => http.get(uri, headers: h));
     return _handleAuth(resp, () => get(path, params: params));
   }
 
   static Future<http.Response> post(String path, {dynamic body}) async {
-    final resp = await http.post(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(),
-      body: body != null ? jsonEncode(body) : null,
-    );
+    final uri = Uri.parse('$baseUrl$path');
+    final h = await _headers();
+    final encoded = body != null ? jsonEncode(body) : null;
+    final resp = await _logged('POST', uri, () => http.post(uri, headers: h, body: encoded), reqBody: encoded);
     return _handleAuth(resp, () => post(path, body: body));
   }
 
   static Future<http.Response> patch(String path, {dynamic body}) async {
-    final resp = await http.patch(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(),
-      body: body != null ? jsonEncode(body) : null,
-    );
+    final uri = Uri.parse('$baseUrl$path');
+    final h = await _headers();
+    final encoded = body != null ? jsonEncode(body) : null;
+    final resp = await _logged('PATCH', uri, () => http.patch(uri, headers: h, body: encoded), reqBody: encoded);
     return _handleAuth(resp, () => patch(path, body: body));
   }
 
   static Future<http.Response> delete(String path) async {
-    final resp = await http.delete(Uri.parse('$baseUrl$path'), headers: await _headers());
+    final uri = Uri.parse('$baseUrl$path');
+    final h = await _headers();
+    final resp = await _logged('DELETE', uri, () => http.delete(uri, headers: h));
     return _handleAuth(resp, () => delete(path));
   }
 
@@ -125,6 +148,18 @@ class Api {
       return data;
     }
     return null;
+  }
+
+  static Future<http.StreamedResponse> multipart(String path, {Map<String, String>? fields, String? filePath, String fileField = 'file'}) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final request = http.MultipartRequest('POST', uri);
+    final token = await accessToken;
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    if (fields != null) request.fields.addAll(fields);
+    if (filePath != null) {
+      request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+    }
+    return request.send();
   }
 
   static Future<Map<String, dynamic>?> me() async {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 import 'add_resident_screen.dart';
 import 'resident_detail_screen.dart';
 
@@ -43,7 +44,7 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
     final tabLabels = ['Все', 'Ожидающие', 'Активные', 'Выселенные', 'Выпустились'];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('DORMITORY')),
+      appBar: const AjouAppBar(),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -108,33 +109,39 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
 
   Widget _card(dynamic r) {
     final status = r['status'] ?? '';
+    const statusLabels = {'active': 'Активный', 'pending': 'Ожидающий', 'evicted': 'Выселен', 'graduated': 'Выпустился'};
     final color = status == 'active' ? AppColors.success : status == 'pending' ? AppColors.warning : status == 'evicted' ? AppColors.danger : Colors.blue;
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         final id = r['id']?.toString();
         if (id != null && id.isNotEmpty) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => ResidentDetailScreen(residentId: id)));
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => ResidentDetailScreen(residentId: id)));
+          _load();
         }
       },
       child: Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 0.5),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
       child: Row(children: [
-        CircleAvatar(radius: 22, backgroundColor: AppColors.accent.withAlpha(25),
-          backgroundImage: r['photo'] != null && r['photo'].toString().isNotEmpty ? NetworkImage(r['photo']) : null,
-          child: r['photo'] == null || r['photo'].toString().isEmpty ? Text((r['full_name'] ?? '?')[0], style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)) : null),
-        const SizedBox(width: 12),
+        ResidentAvatar(photoUrl: r['photo']?.toString(), name: r['full_name'] ?? '?', radius: 24),
+        const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(r['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          const SizedBox(height: 2),
-          Text('#${r['university_id'] ?? ''} · ${r['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+          Text(r['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: AppColors.textPrimary)),
+          const SizedBox(height: 3),
+          Text('#${r['university_id'] ?? ''} · ${r['faculty'] ?? ''}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         ])),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(12)),
-          child: Text(status, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700)),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(12)),
+          child: Text(statusLabels[status] ?? status, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700)),
         ),
-        const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+        const SizedBox(width: 4),
+        const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 22),
       ]),
     ),
     );

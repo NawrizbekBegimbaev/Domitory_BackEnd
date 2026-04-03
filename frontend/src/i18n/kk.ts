@@ -76,6 +76,7 @@ const kk = {
   residentsTitle: 'Jasawshılar',
   residentsInSystem: 'sistemada jasawshılar',
   addResident: "Jasawshı qosıw",
+  buyFullRoom: "Pútkilley xananı satıp alıw",
   searchByNameOrId: 'Atı yamasa ID boyınsha izlew',
   tabAll: 'Barlıq',
   tabActive: 'Aktiv',

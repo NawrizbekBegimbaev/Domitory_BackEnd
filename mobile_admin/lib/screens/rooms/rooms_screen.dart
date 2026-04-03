@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
+import '../contracts/create_contract_screen.dart';
+import 'full_room_screen.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -82,7 +85,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('DORMITORY')),
+      appBar: const AjouAppBar(),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -160,9 +163,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
         child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 9)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
         ]),
       ),
     );
@@ -209,13 +212,13 @@ class _RoomsScreenState extends State<RoomsScreen> {
       onTap: () => _showRoomSheet(room),
       child: Container(
         width: 72,
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2))]),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 4),
             child: Text('${room['room_number'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
           ),
-          Text('$occupancy/$capacity', style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text('$occupancy/$capacity', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Container(height: 3, decoration: BoxDecoration(color: color, borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(10), bottomRight: Radius.circular(10)))),
         ]),
@@ -233,7 +236,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
       onTap: () => _showRoomSheet(room),
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2))]),
         child: Row(children: [
           Container(width: 4, height: 36, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 12),
@@ -244,7 +247,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-            child: Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+            child: Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
@@ -270,7 +273,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       isScrollControlled: true,
       builder: (ctx) => _RoomDetailSheet(room: room, roomId: roomId),
-    );
+    ).then((_) => _loadRooms());
   }
 }
 
@@ -293,11 +296,34 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
     _loadResidents();
   }
 
+  String _formatMoney(dynamic v) {
+    final num = double.tryParse(v.toString()) ?? 0;
+    final str = num.toStringAsFixed(0);
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) buffer.write(' ');
+      buffer.write(str[i]);
+    }
+    return buffer.toString();
+  }
+
   Future<void> _loadResidents() async {
     try {
       final resp = await Api.get('/assignments/', params: {'room': widget.roomId, 'status': 'active'});
       if (resp.statusCode == 200 && mounted) {
-        _residents = jsonDecode(resp.body)['results'] ?? [];
+        final assignments = jsonDecode(resp.body)['results'] ?? [];
+        // Load resident names and photos
+        for (var a in assignments) {
+          try {
+            final rResp = await Api.get('/residents/${a['resident']}/');
+            if (rResp.statusCode == 200) {
+              final rData = jsonDecode(rResp.body);
+              a['resident_name'] = rData['full_name'] ?? '';
+              a['resident_photo'] = rData['photo'];
+            }
+          } catch (_) {}
+        }
+        _residents = assignments;
       }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
@@ -339,7 +365,7 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
         ]),
         if (r['monthly_price'] != null) ...[
           const SizedBox(height: 8),
-          _detail('Цена/мес', '${r['monthly_price']} UZS'),
+          _detail('Цена/мес', '${_formatMoney(r['monthly_price'])} UZS'),
         ],
         if (r['gender_policy'] != null) ...[
           const SizedBox(height: 8),
@@ -353,34 +379,72 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
         else if (_residents.isEmpty)
           const Text('Никто не проживает', style: TextStyle(color: AppColors.textMuted, fontSize: 12))
         else
-          ..._residents.map((a) => Container(
+          ..._residents.map((a) {
+            final name = a['resident_name'] ?? a['resident_detail']?['full_name'] ?? '';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+              child: Row(children: [
+                ResidentAvatar(photoUrl: a['resident_photo']?.toString(), name: name, radius: 16),
+                const SizedBox(width: 10),
+                Expanded(child: Text(name.isNotEmpty ? name : 'Жилец', style: const TextStyle(fontSize: 13))),
+              ]),
+            );
+          }),
+        // Empty slots — tap to create contract + assign
+        ...List.generate(emptySlots, (_) => GestureDetector(
+          onTap: () async {
+            Navigator.pop(context);
+            final result = await Navigator.push(context, MaterialPageRoute(
+              builder: (_) => CreateContractScreen(preselectedRoom: widget.room),
+            ));
+            if (result == true) _loadResidents();
+          },
+          child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
             child: Row(children: [
-              CircleAvatar(radius: 16, backgroundColor: AppColors.accent.withAlpha(20), child: Text(((a['resident_detail']?['full_name'] ?? a['resident']?.toString() ?? '?')[0]), style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.bold))),
+              CircleAvatar(radius: 16, backgroundColor: AppColors.accent.withAlpha(15), child: const Icon(Icons.person_add_outlined, size: 14, color: AppColors.accent)),
               const SizedBox(width: 10),
-              Expanded(child: Text(a['resident_detail']?['full_name'] ?? 'Жилец #${a['resident']}', style: const TextStyle(fontSize: 13))),
+              const Expanded(child: Text('Добавить жильца', style: TextStyle(color: AppColors.accent, fontSize: 13, fontWeight: FontWeight.w500))),
+              const Icon(Icons.chevron_right, color: AppColors.accent, size: 18),
             ]),
-          )),
-        // Empty slots
-        ...List.generate(emptySlots, (_) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border, style: BorderStyle.solid)),
-          child: Row(children: [
-            CircleAvatar(radius: 16, backgroundColor: AppColors.border, child: const Icon(Icons.person_add_outlined, size: 14, color: AppColors.textMuted)),
-            const SizedBox(width: 10),
-            const Text('Свободное место', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
-          ]),
+          ),
         )),
+        // Full room button — only if room is empty
+        if (_residents.isEmpty && emptySlots > 1)
+          GestureDetector(
+            onTap: () async {
+              Navigator.pop(context);
+              final result = await Navigator.push(context, MaterialPageRoute(
+                builder: (_) => FullRoomScreen(room: widget.room),
+              ));
+              if (result == true) _loadResidents();
+            },
+            child: Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accent.withAlpha(60), width: 1.5, style: BorderStyle.solid),
+                color: AppColors.accent.withAlpha(10),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.groups, color: AppColors.accent, size: 20),
+                const SizedBox(width: 8),
+                Text('Купить всю комнату', style: TextStyle(color: AppColors.accent, fontSize: 14, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
       ]),
     );
   }
 
   Widget _detail(String label, String value) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+      Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
       Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
     ]);
   }

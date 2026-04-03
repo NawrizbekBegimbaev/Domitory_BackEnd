@@ -52,6 +52,14 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
   const [assignMonths, setAssignMonths] = useState(0)
   const [assigning, setAssigning] = useState(false)
 
+  // Full room purchase
+  const [showFullRoom, setShowFullRoom] = useState(false)
+  const [fullRoomResidents, setFullRoomResidents] = useState<{resident: Resident | null, searchQuery: string, searchResults: Resident[]}[]>([])
+  const [fullRoomMonths, setFullRoomMonths] = useState(0)
+  const [fullRoomAssigning, setFullRoomAssigning] = useState(false)
+
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const loadResidents = () => {
     assignmentsApi.list({ room: room.id, status: 'active' }).then((r) => {
       setResidents((r.data as PaginatedResponse<RoomAssignment>).results)
@@ -87,7 +95,7 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-bold">{t('room')} {room.room_number}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
         <div className="text-text-muted text-sm mb-6">
           {buildingName || room.building_name || ''} · {room.floor_number} {t('floorLabel')}
@@ -114,14 +122,14 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
             ))}
 
             {/* Empty slots — each can become an assign form */}
-            {Array.from({ length: Math.max(0, room.capacity - residents.length) }).map((_, i) => (
+            {Array.from({ length: Math.max(0, room.capacity - residents.reduce((sum, a) => sum + (a.beds_purchased || 1), 0)) }).map((_, i) => (
               <div key={`empty-${i}`}>
                 {activeSlot === i ? (
                   /* Inline assign form */
                   <div className="bg-dark-bg border border-accent/30 rounded-lg p-4 animate-[fadeSlideDown_0.5s_ease-out]">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-accent">{t('addResident')}</span>
-                      <button onClick={() => { setActiveSlot(null); setSelectedResident(null); setSearchQuery(''); setAssignMonths(0) }} className="text-text-muted hover:text-white"><X size={14} /></button>
+                      <button onClick={() => { setActiveSlot(null); setSelectedResident(null); setSearchQuery(''); setAssignMonths(0) }} className="text-text-muted hover:text-accent"><X size={14} /></button>
                     </div>
 
                     {!selectedResident ? (
@@ -132,7 +140,7 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                           onChange={(e) => {
                             setSearchQuery(e.target.value)
                             if (e.target.value.length >= 2) {
-                              residentsApi.list({ search: e.target.value, page_size: '5' }).then((r) => setSearchResults((r.data as PaginatedResponse<Resident>).results)).catch(() => {})
+                              residentsApi.list({ search: e.target.value, page_size: '5', available: 'true' }).then((r) => setSearchResults((r.data as PaginatedResponse<Resident>).results)).catch(() => {})
                             } else { setSearchResults([]) }
                           }}
                           placeholder={t('searchByNameOrId')}
@@ -155,7 +163,7 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                           {getInitials(selectedResident.full_name)}
                         </div>
                         <span className="text-sm flex-1">{selectedResident.full_name}</span>
-                        <button onClick={() => setSelectedResident(null)} className="text-text-muted hover:text-white text-xs">{t('change')}</button>
+                        <button onClick={() => setSelectedResident(null)} className="text-text-muted hover:text-accent text-xs">{t('change')}</button>
                       </div>
                     )}
 
@@ -180,13 +188,13 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                             const bId = room.building_id || (await buildingsApi.list({ page_size: '1' })).data.results[0]?.id
                             if (!bId) throw new Error('No building')
                             const today = new Date()
-                            const endD = new Date(today); endD.setMonth(endD.getMonth() + assignMonths)
+                            const endD = new Date(today.getFullYear(), today.getMonth() + assignMonths, 0)
                             const rand = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
                             const contract = await contractsApi.create({
                               resident: selectedResident.id, building: bId,
                               contract_number: `\u0414\u0413-${today.getFullYear()}-${rand}`,
-                              start_date: today.toISOString().split('T')[0],
-                              end_date: endD.toISOString().split('T')[0],
+                              start_date: fmtDate(today),
+                              end_date: fmtDate(endD),
                             })
                             await assignmentsApi.create({ contract: contract.data.id, resident: selectedResident.id, room: room.id })
                             setActiveSlot(null); setSelectedResident(null); setAssignMonths(0)
@@ -216,6 +224,142 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
               </div>
             ))}
           </div>
+
+          {/* Full room purchase button */}
+          {residents.length === 0 && !showFullRoom && (
+            <button
+              onClick={() => {
+                setShowFullRoom(true)
+                setFullRoomMonths(0)
+                setFullRoomResidents([{ resident: null, searchQuery: '', searchResults: [] }])
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed border-accent/40 text-accent hover:bg-accent/5 transition-colors text-sm font-medium"
+            >
+              <Users size={16} /> {t('buyFullRoom') || 'Купить всю комнату'}
+            </button>
+          )}
+
+          {/* Full room purchase form */}
+          {showFullRoom && (
+            <div className="bg-dark-bg border border-accent/30 rounded-lg p-4 space-y-3 animate-[fadeSlideDown_0.5s_ease-out]">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-bold text-accent">{t('buyFullRoom') || 'Вся комната'}</span>
+                <button onClick={() => { setShowFullRoom(false); setFullRoomResidents([]) }} className="text-text-muted hover:text-accent"><X size={14} /></button>
+              </div>
+              <div className="text-xs text-text-muted mb-2">
+                {room.capacity} мест × {String(Math.round(parseFloat(room.monthly_price))).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} = {String(Math.round(parseFloat(room.monthly_price) * room.capacity)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} UZS/мес
+              </div>
+
+              <div className="mb-2">
+                <label className="block text-xs text-text-muted mb-1">{t('durationLabel') || 'Срок (мес)'}</label>
+                <div className="flex flex-wrap gap-1">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                    <button key={m} onClick={() => setFullRoomMonths(m)}
+                      className={`w-8 h-7 rounded text-xs font-medium transition-colors ${fullRoomMonths === m ? 'bg-accent text-white' : 'bg-dark-bg border border-dark-border text-text-secondary hover:border-accent/30'}`}
+                    >{m}</button>
+                  ))}
+                </div>
+              </div>
+
+              {fullRoomResidents.map((fr, idx) => (
+                <div key={idx} className="bg-dark-card border border-dark-border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-muted">Жилец {idx + 1}</span>
+                    {fullRoomResidents.length > 1 && (
+                      <button onClick={() => setFullRoomResidents(prev => prev.filter((_, i) => i !== idx))} className="text-text-muted hover:text-danger text-xs">Удалить</button>
+                    )}
+                  </div>
+
+                  {!fr.resident ? (
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                      <input
+                        value={fr.searchQuery}
+                        onChange={(e) => {
+                          const q = e.target.value
+                          setFullRoomResidents(prev => prev.map((r, i) => i === idx ? { ...r, searchQuery: q } : r))
+                          if (q.length >= 2) {
+                            residentsApi.list({ search: q, page_size: '5', available: 'true' }).then((r) => {
+                              setFullRoomResidents(prev => {
+                                const selectedIds = prev.filter((_, i) => i !== idx).map(fr2 => fr2.resident?.id).filter(Boolean)
+                                const filtered = (r.data as PaginatedResponse<Resident>).results.filter(res => !selectedIds.includes(res.id))
+                                return prev.map((fr2, i) => i === idx ? { ...fr2, searchResults: filtered } : fr2)
+                              })
+                            }).catch(() => {})
+                          }
+                        }}
+                        placeholder={t('searchByNameOrId') || 'Поиск...'}
+                        className="w-full text-sm"
+                        style={{ paddingLeft: '2rem' }}
+                      />
+                      {fr.searchResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-dark-card border border-dark-border rounded-lg max-h-28 overflow-y-auto">
+                          {fr.searchResults.map((r) => (
+                            <button key={r.id} onClick={() => {
+                              setFullRoomResidents(prev => prev.map((fr2, i) => i === idx ? { ...fr2, resident: r, searchResults: [], searchQuery: '' } : fr2))
+                            }} className="w-full text-left px-3 py-2 text-sm hover:bg-dark-hover">
+                              {r.full_name} <span className="text-text-muted">· {r.university_id}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div style={{ width: 24, height: 24, minWidth: 24, borderRadius: '50%' }} className="bg-accent/20 text-accent flex items-center justify-center text-[10px] font-bold">
+                        {getInitials(fr.resident.full_name)}
+                      </div>
+                      <span className="text-sm flex-1">{fr.resident.full_name}</span>
+                      <button onClick={() => setFullRoomResidents(prev => prev.map((fr2, i) => i === idx ? { ...fr2, resident: null } : fr2))} className="text-text-muted hover:text-accent text-xs">{t('change')}</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {fullRoomResidents.length < room.capacity && (
+                <button onClick={() => setFullRoomResidents(prev => [...prev, { resident: null, searchQuery: '', searchResults: [] }])}
+                  className="w-full py-2 rounded-lg border border-dashed border-dark-border text-text-muted hover:text-accent hover:border-accent/30 text-sm transition-colors"
+                >
+                  + Добавить жильца
+                </button>
+              )}
+
+              <button
+                onClick={async () => {
+                  const valid = fullRoomResidents.every(fr => fr.resident) && fullRoomMonths > 0
+                  if (!valid) { alert('Выберите жильцов и срок'); return }
+                  setFullRoomAssigning(true)
+                  try {
+                    const today = new Date()
+                    const contractsData: { resident: string; contract: string }[] = []
+
+                    for (const fr of fullRoomResidents) {
+                      const endD = new Date(today.getFullYear(), today.getMonth() + fullRoomMonths, 0)
+                      const rand = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+                      const contract = await contractsApi.create({
+                        resident: fr.resident!.id,
+                        building: room.building_id || (await buildingsApi.list({ page_size: '1' })).data.results[0]?.id,
+                        contract_number: `ДГ-${today.getFullYear()}-${rand}`,
+                        start_date: fmtDate(today),
+                        end_date: fmtDate(endD),
+                      })
+                      contractsData.push({ resident: fr.resident!.id, contract: contract.data.id })
+                    }
+
+                    await assignmentsApi.fullRoom({ room: room.id, assignments: contractsData })
+                    setShowFullRoom(false); setFullRoomResidents([])
+                    loadResidents(); onUpdated()
+                  } catch (err: any) {
+                    alert(t('error') + ': ' + (err.response?.data?.error?.message || err.message))
+                  } finally { setFullRoomAssigning(false) }
+                }}
+                disabled={fullRoomAssigning || !fullRoomResidents.every(fr => fr.resident) || fullRoomMonths <= 0}
+                className="w-full py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium disabled:opacity-50 transition-colors"
+              >
+                {fullRoomAssigning ? t('saving') || 'Сохранение...' : `Заселить (${fullRoomResidents.length} чел. × ${fullRoomMonths} ${t('monthsShort') || 'мес'})`}
+              </button>
+            </div>
+          )}
         </div>}
 
         <div className="space-y-4">

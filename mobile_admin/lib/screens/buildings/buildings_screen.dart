@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 import 'floors_screen.dart';
 
 class BuildingsScreen extends StatefulWidget {
@@ -82,7 +83,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('DORMITORY')),
+      appBar: const AjouAppBar(),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -126,7 +127,7 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text('$_loadPercent% загрузка', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                child: Text('$_loadPercent% загрузка', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ),
             ]),
           ),
@@ -170,9 +171,9 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
         child: Column(children: [
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 9)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
         ]),
       ),
     );
@@ -202,14 +203,14 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
       onLongPress: () => _showBuildingForm(b),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))]),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Expanded(child: Text(b['name'] ?? 'Корпус', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: gColor.withAlpha(25), borderRadius: BorderRadius.circular(8)),
-              child: Text(_genderLabel(genderPolicy).toUpperCase(), style: TextStyle(color: gColor, fontSize: 9, fontWeight: FontWeight.w700)),
+              child: Text(_genderLabel(genderPolicy).toUpperCase(), style: TextStyle(color: gColor, fontSize: 11, fontWeight: FontWeight.w700)),
             ),
           ]),
           const SizedBox(height: 4),
@@ -240,35 +241,55 @@ class _BuildingsScreenState extends State<BuildingsScreen> {
               Expanded(child: Text(b['address'], style: const TextStyle(color: AppColors.textMuted, fontSize: 11))),
             ]),
           ],
-          const SizedBox(height: 10),
-          Container(height: 1, color: AppColors.border),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(children: [
-            GestureDetector(
+            Expanded(child: _actionBtn(
+              icon: Icons.layers_outlined,
+              label: 'Этажи',
+              color: AppColors.accent,
               onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => FloorsScreen(
-                    buildingId: b['id'].toString(),
-                    buildingName: b['name'] ?? 'Корпус',
-                    buildingGenderPolicy: genderPolicy ?? 'mixed',
-                  )),
-                );
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => FloorsScreen(
+                  buildingId: b['id'].toString(),
+                  buildingName: b['name'] ?? 'Корпус',
+                  buildingGenderPolicy: genderPolicy ?? 'mixed',
+                )));
                 _load();
               },
-              child: const Text('Этажи и комнаты', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ),
-            const SizedBox(width: 16),
-            GestureDetector(
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: _actionBtn(
+              icon: Icons.edit_outlined,
+              label: 'Изменить',
+              color: AppColors.warning,
               onTap: () => _showBuildingForm(b),
-              child: const Text('Изменить', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ),
-            const Spacer(),
-            GestureDetector(
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: _actionBtn(
+              icon: Icons.delete_outline,
+              label: 'Удалить',
+              color: AppColors.danger,
               onTap: () => _deleteBuilding(b, occupancy),
-              child: const Text('Удалить', style: TextStyle(color: AppColors.danger, fontSize: 12)),
-            ),
+            )),
           ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _actionBtn({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withAlpha(15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withAlpha(40)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       ),
     );

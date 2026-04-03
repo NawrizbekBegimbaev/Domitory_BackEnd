@@ -108,9 +108,9 @@ export default function BuildingsPage() {
             </div>
 
             <div className="flex gap-4 text-sm text-text-secondary mb-2">
-              <span>{t('floors')}: <strong className="text-white">{floorCount}</strong></span>
-              <span>{t('rooms')}: <strong className="text-white">{roomCount}</strong></span>
-              <span>{t('capacity')}: <strong className="text-white">{capacity}</strong></span>
+              <span>{t('floors')}: <strong className="text-text-primary">{floorCount}</strong></span>
+              <span>{t('rooms')}: <strong className="text-text-primary">{roomCount}</strong></span>
+              <span>{t('capacity')}: <strong className="text-text-primary">{capacity}</strong></span>
             </div>
             <div className="text-sm">
               {t('occupied')}: <span className="text-accent font-bold">{occupancy}</span>
@@ -125,13 +125,13 @@ export default function BuildingsPage() {
             <div className="flex items-center gap-4 mt-4 pt-3 border-t border-dark-border">
               <button
                 onClick={() => navigate(`/buildings/${b.id}/floors`)}
-                className="text-sm text-text-secondary hover:text-white transition-colors"
+                className="text-sm text-text-secondary hover:text-accent transition-colors"
               >
                 {t('manageFloors')}
               </button>
               <button
                 onClick={() => { setEditBuilding(b); setShowModal(true) }}
-                className="text-sm text-text-secondary hover:text-white transition-colors"
+                className="text-sm text-text-secondary hover:text-accent transition-colors"
               >
                 {t('edit')}
               </button>
@@ -202,7 +202,7 @@ function BuildingModal({ building, onClose, onSaved }: { building: Building | nu
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h2 className="text-lg font-bold">{isEdit ? t('editBuilding') : t('newBuilding')}</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-white"><X size={20} /></button>
+          <button onClick={onClose} className="text-text-muted hover:text-accent"><X size={20} /></button>
         </div>
 
         <div className="space-y-4">

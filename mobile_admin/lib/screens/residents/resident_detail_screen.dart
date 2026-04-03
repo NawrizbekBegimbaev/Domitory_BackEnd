@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/widgets.dart';
 import '../finance/new_payment_screen.dart';
 import 'edit_resident_screen.dart';
 import '../contracts/create_contract_screen.dart';
@@ -180,7 +181,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Комната ${room['room_number'] ?? ''}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
-                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                     ])),
                     if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
                   ]),
@@ -340,7 +341,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                     const SizedBox(width: 10),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Комната ${room['room_number'] ?? ''}', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isSelected ? AppColors.accent : AppColors.textPrimary)),
-                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                      Text('$occupancy/$capacity мест', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                     ])),
                     if (isSelected) const Icon(Icons.check_circle, color: AppColors.accent, size: 20),
                   ]),
@@ -416,7 +417,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
     final status = r['status'] ?? '';
     final guardians = r['guardians'] as List<dynamic>? ?? [];
     final documents = r['documents'] as List<dynamic>? ?? [];
-    final debt = (_balance?['debt'] ?? 0).toDouble();
+    final debt = _toDouble(_balance?['debt']);
 
     return NestedScrollView(
       headerSliverBuilder: (context, _) => [
@@ -426,16 +427,9 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
             // Profile card
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border), boxShadow: [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))]),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: AppColors.accent.withAlpha(25),
-                  backgroundImage: r['photo'] != null && r['photo'].toString().isNotEmpty ? NetworkImage(r['photo']) : null,
-                  child: r['photo'] == null || r['photo'].toString().isEmpty
-                      ? Text((r['full_name'] ?? '?')[0], style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 24))
-                      : null,
-                ),
+                ResidentAvatar(photoUrl: r['photo']?.toString(), name: r['full_name'] ?? '?', radius: 32),
                 const SizedBox(width: 14),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
@@ -449,28 +443,33 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                   const SizedBox(height: 6),
                   _infoRow(Icons.badge_outlined, 'ID: ${r['university_id'] ?? '-'}'),
                   _infoRow(Icons.school_outlined, '${r['faculty'] ?? '-'} · ${r['course'] ?? '-'} курс'),
-                  if (r['phone'] != null) _infoRow(Icons.phone_outlined, r['phone']),
+                  if ((r['phone_number'] ?? r['phone']) != null) _infoRow(Icons.phone_outlined, r['phone_number'] ?? r['phone']),
                 ])),
               ]),
             ),
             const SizedBox(height: 12),
 
-            // Debt card
+            // Debt / Overpayment card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(colors: [Color(0xFFF97316), Color(0xFFEA580C)]),
+                gradient: LinearGradient(colors: debt > 0
+                    ? [const Color(0xFF003153), const Color(0xFF001A2E)]  // Ajou blue — debt
+                    : [const Color(0xFF16A34A), const Color(0xFF15803D)]),  // green — no debt / overpaid
               ),
               child: Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Задолженность', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+                  Text(
+                    debt > 0 ? 'Задолженность' : debt < 0 ? 'Переплата' : 'Баланс',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 4),
-                  Text('${_formatAmount(debt)} UZS', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  Text('${_formatAmount(debt.abs())} UZS', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                 ])),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.accent, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: debt > 0 ? AppColors.accent : AppColors.success, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   onPressed: () async {
                     await Navigator.push(context, MaterialPageRoute(builder: (_) => NewPaymentScreen(preselectedResident: _resident)));
                     _loadAll();
@@ -484,19 +483,21 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
             // Primary action buttons row
             Row(children: [
               _actionButton(Icons.edit_outlined, 'Редактировать', AppColors.accent, _onEdit),
-              const SizedBox(width: 8),
-              _actionButton(Icons.swap_horiz, 'Перевести', AppColors.warning, _onTransfer),
-              const SizedBox(width: 8),
-              _actionButton(Icons.logout, 'Выселить', AppColors.danger, _onEvict),
+              if (status != 'evicted' && status != 'graduated') ...[
+                const SizedBox(width: 8),
+                _actionButton(Icons.swap_horiz, 'Перевести', AppColors.warning, _onTransfer),
+                const SizedBox(width: 8),
+                _actionButton(Icons.logout, 'Выселить', AppColors.danger, _onEvict),
+              ],
             ]),
 
             // Conditional action buttons
-            if (!_hasActiveContract || !_hasActiveAssignment) ...[
+            if (status != 'evicted' && status != 'graduated' && (!_hasActiveContract || !_hasActiveAssignment)) ...[
               const SizedBox(height: 8),
               Row(children: [
                 if (!_hasActiveContract)
                   Expanded(child: _actionButton(Icons.description_outlined, 'Создать договор', AppColors.success, _onCreateContract)),
-                if (!_hasActiveContract && _hasActiveContract == false && !_hasActiveAssignment)
+                if (!_hasActiveContract && !_hasActiveAssignment)
                   const SizedBox(width: 8),
                 if (_hasActiveContract && !_hasActiveAssignment)
                   Expanded(child: _actionButton(Icons.meeting_room_outlined, 'Назначить комнату', Colors.blue, _onAssignRoom)),
@@ -537,7 +538,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
       child: Row(children: [
         Icon(icon, size: 14, color: AppColors.textMuted),
         const SizedBox(width: 6),
-        Expanded(child: Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12))),
+        Expanded(child: Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13))),
       ]),
     );
   }
@@ -552,7 +553,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+            Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
           ]),
         ),
       ),
@@ -577,16 +578,16 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(g['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 2),
-              Text(g['relationship'] ?? '', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text(g['relationship'] ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(g['phone'] ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text(g['phone_number'] ?? g['phone'] ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               if (g['is_emergency_contact'] == true)
                 Container(
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: AppColors.danger.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Экстренный', style: TextStyle(color: AppColors.danger, fontSize: 9, fontWeight: FontWeight.w600)),
+                  child: const Text('Экстренный', style: TextStyle(color: AppColors.danger, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
             ]),
           ]),
@@ -594,6 +595,12 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
       },
     );
   }
+
+  static const _docTypeLabels = {
+    'id_card': 'ID-карта',
+    'passport': 'Паспорт',
+    'drivers_license': 'Вод. удостоверение',
+  };
 
   // --- Documents Tab ---
   Widget _documentsTab(List<dynamic> documents) {
@@ -604,25 +611,65 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final d = documents[i];
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: AppColors.accent.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-              child: Text((d['document_type'] ?? '').toString().toUpperCase(), style: const TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(d['document_number'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              if (d['created_at'] != null)
-                Text(d['created_at'].toString().substring(0, 10), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-            ])),
-            const Icon(Icons.description_outlined, color: AppColors.textMuted, size: 20),
-          ]),
+        final docType = d['document_type'] ?? '';
+        final hasFile = d['file'] != null && d['file'].toString().isNotEmpty;
+        return GestureDetector(
+          onTap: () => _showDocumentDetail(d),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: AppColors.accent.withAlpha(20), borderRadius: BorderRadius.circular(8)),
+                child: Text(_docTypeLabels[docType] ?? docType.toUpperCase(), style: const TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(d['document_number'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                if (d['created_at'] != null)
+                  Text(_formatDate(d['created_at']), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ])),
+              Icon(hasFile ? Icons.attach_file : Icons.description_outlined, color: hasFile ? AppColors.accent : AppColors.textMuted, size: 20),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 18),
+            ]),
+          ),
         );
       },
+    );
+  }
+
+  void _showDocumentDetail(dynamic d) {
+    final docType = d['document_type'] ?? '';
+    final hasFile = d['file'] != null && d['file'].toString().isNotEmpty;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bg,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 20),
+          Text(_docTypeLabels[docType] ?? docType, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 16),
+          _docDetailRow('Номер', d['document_number'] ?? '-'),
+          _docDetailRow('Дата добавления', _formatDate(d['created_at'])),
+          _docDetailRow('Файл', hasFile ? 'Прикреплён' : 'Не прикреплён'),
+          const SizedBox(height: 16),
+        ]),
+      ),
+    );
+  }
+
+  Widget _docDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(children: [
+        SizedBox(width: 120, child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13))),
+        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
+      ]),
     );
   }
 
@@ -632,11 +679,11 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
       // Balance summary
       if (_balance != null) ...[
         Row(children: [
-          _summaryChip('Начислено', _formatAmount((_balance!['total_charges'] ?? 0).toDouble()), AppColors.textPrimary),
+          _summaryChip('Начислено', _formatAmount(_toDouble(_balance!['total_charges'])), AppColors.textPrimary),
           const SizedBox(width: 8),
-          _summaryChip('Оплачено', _formatAmount((_balance!['total_paid'] ?? 0).toDouble()), AppColors.success),
+          _summaryChip('Оплачено', _formatAmount(_toDouble(_balance!['total_paid'])), AppColors.success),
           const SizedBox(width: 8),
-          _summaryChip('Долг', _formatAmount((_balance!['debt'] ?? 0).toDouble()), AppColors.danger),
+          _summaryChip('Долг', _formatAmount(_toDouble(_balance!['debt'])), AppColors.danger),
         ]),
         const SizedBox(height: 16),
       ],
@@ -668,11 +715,11 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                   final statusColor = chargeStatus == 'paid' ? AppColors.success : chargeStatus == 'overdue' ? AppColors.danger : chargeStatus == 'partially_paid' ? AppColors.warning : AppColors.textMuted;
                   return DataRow(cells: [
                     DataCell(Text('${c['period_month']}/${c['period_year']}')),
-                    DataCell(Text(_formatAmount((c['amount'] ?? 0).toDouble()))),
+                    DataCell(Text(_formatAmount(_toDouble(c['amount'])))),
                     DataCell(Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: statusColor.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                      child: Text(chargeStatus, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                      child: Text(_chargeStatusLabel(chargeStatus), style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600)),
                     )),
                   ]);
                 }).toList(),
@@ -699,13 +746,13 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${_formatAmount((p['amount'] ?? 0).toDouble())} UZS', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.success)),
-              Text(_formatDate(p['payment_date']), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+              Text('${_toDouble(p['amount']) >= 0 ? '+' : ''}${_formatAmount(_toDouble(p['amount']))} UZS', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _toDouble(p['amount']) >= 0 ? AppColors.success : AppColors.danger)),
+              Text(_formatDate(p['payment_date']), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ])),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: AppColors.card2, borderRadius: BorderRadius.circular(8)),
-              child: Text(_paymentMethodLabel(p['payment_method']), style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w500)),
+              child: Text(_paymentMethodLabel(p['payment_method']), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
             ),
           ]),
         )),
@@ -718,9 +765,9 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
         child: Column(children: [
-          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13)),
+          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 14)),
         ]),
       ),
     );
@@ -728,37 +775,41 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
 
   // --- Accommodation Tab ---
   Widget _accommodationTab() {
+    final residentStatus = _resident?['status'] ?? '';
+    final isEvicted = residentStatus == 'evicted' || residentStatus == 'graduated';
     return ListView(padding: const EdgeInsets.all(16), children: [
-      // Current assignment
-      const Text('Текущее проживание', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-      const SizedBox(height: 8),
-      if (_assignments.isNotEmpty) ...[
-        () {
-          final active = _assignments.where((a) => a['status'] == 'active').toList();
-          if (active.isEmpty) return const Text('Нет активного назначения', style: TextStyle(color: AppColors.textMuted, fontSize: 12));
-          final a = active.first;
-          return Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.success.withAlpha(60))),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Icon(Icons.meeting_room_outlined, color: AppColors.success, size: 18),
-                const SizedBox(width: 8),
-                Text('Комната ${a['room_detail']?['room_number'] ?? a['room'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: AppColors.success.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                  child: const Text('Активно', style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.w700)),
-                ),
+      // Current assignment (hide for evicted/graduated)
+      if (!isEvicted) ...[
+        const Text('Текущее проживание', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+        const SizedBox(height: 8),
+        if (_assignments.isNotEmpty) ...[
+          () {
+            final active = _assignments.where((a) => a['status'] == 'active').toList();
+            if (active.isEmpty) return const Text('Нет активного назначения', style: TextStyle(color: AppColors.textMuted, fontSize: 12));
+            final a = active.first;
+            return Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.success.withAlpha(60))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.meeting_room_outlined, color: AppColors.success, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Комната ${a['room_number'] ?? a['room_detail']?['room_number'] ?? a['room'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: AppColors.success.withAlpha(20), borderRadius: BorderRadius.circular(8)),
+                    child: const Text('Активно', style: TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                Text('С ${_formatDate(a['start_date'])}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ]),
-              const SizedBox(height: 8),
-              Text('С ${_formatDate(a['start_date'])}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ]),
-          );
-        }(),
-      ] else
-        const Text('Нет назначений', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            );
+          }(),
+        ] else
+          const Text('Нет назначений', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      ],
 
       const SizedBox(height: 20),
       // Contracts
@@ -781,11 +832,11 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: cColor.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                  child: Text(cStatus, style: TextStyle(color: cColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                  child: Text(_contractStatusLabel(cStatus), style: TextStyle(color: cColor, fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
               ]),
               const SizedBox(height: 6),
-              Text('${_formatDate(c['start_date'])} — ${_formatDate(c['end_date'])}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+              Text('${_formatDate(c['start_date'])} — ${_formatDate(c['end_date'])}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ]),
           );
         }),
@@ -808,18 +859,24 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
               Icon(Icons.meeting_room_outlined, color: aColor, size: 16),
               const SizedBox(width: 8),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Комната ${a['room_detail']?['room_number'] ?? a['room'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                Text('${_formatDate(a['start_date'])} — ${a['end_date'] != null ? _formatDate(a['end_date']) : 'по сей день'}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                Text('Комната ${a['room_number'] ?? a['room_detail']?['room_number'] ?? a['room'] ?? '-'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text('${_formatDate(a['start_date'])} — ${a['end_date'] != null ? _formatDate(a['end_date']) : 'по сей день'}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               ])),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(color: aColor.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                child: Text(aStatus, style: TextStyle(color: aColor, fontSize: 9, fontWeight: FontWeight.w600)),
+                child: Text(_assignmentStatusLabel(aStatus), style: TextStyle(color: aColor, fontSize: 11, fontWeight: FontWeight.w600)),
               ),
             ]),
           );
         }),
     ]);
+  }
+
+  double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
   }
 
   String _formatAmount(double amount) {
@@ -835,8 +892,41 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
   String _formatDate(dynamic date) {
     if (date == null) return '-';
     final s = date.toString();
-    if (s.length >= 10) return s.substring(0, 10);
+    if (s.length >= 10) {
+      final d = s.substring(0, 10); // YYYY-MM-DD
+      final parts = d.split('-');
+      if (parts.length == 3) return '${parts[2]}.${parts[1]}.${parts[0]}';
+      return d;
+    }
     return s;
+  }
+
+  String _chargeStatusLabel(String status) {
+    switch (status) {
+      case 'paid': return 'Оплачен';
+      case 'overdue': return 'Просрочен';
+      case 'partially_paid': return 'Частично';
+      case 'pending': return 'Ожидание';
+      default: return status;
+    }
+  }
+
+  String _contractStatusLabel(String status) {
+    switch (status) {
+      case 'active': return 'Активный';
+      case 'terminated': return 'Расторгнут';
+      case 'expired': return 'Истёк';
+      default: return status;
+    }
+  }
+
+  String _assignmentStatusLabel(String status) {
+    switch (status) {
+      case 'active': return 'Активно';
+      case 'completed': return 'Завершено';
+      case 'transferred': return 'Переведён';
+      default: return status;
+    }
   }
 
   String _paymentMethodLabel(dynamic method) {

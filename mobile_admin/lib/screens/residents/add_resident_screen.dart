@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// image_picker removed — using placeholder for now
+import 'package:file_picker/file_picker.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 
@@ -89,20 +89,19 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
   }
 
   Future<void> _pickPhoto() async {
-    // Photo picker disabled — image_picker not available
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Фото можно загрузить через веб-версию')),
-      );
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.single.path != null && mounted) {
+      setState(() => _photo = File(result.files.single.path!));
     }
   }
 
   Future<void> _pickDocFile() async {
-    // File picker disabled — image_picker not available
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Документы можно загрузить через веб-версию')),
-      );
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+    );
+    if (result != null && result.files.single.path != null && mounted) {
+      setState(() => _docFile = File(result.files.single.path!));
     }
   }
 
@@ -136,11 +135,12 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
     try {
       final fullName = '${_lastNameCtrl.text.trim()} ${_firstNameCtrl.text.trim()} ${_middleNameCtrl.text.trim()}'.trim();
       final phone = '+998${_phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')}';
+      final docNumber = _docNumberCtrl.text.replaceAll(' ', '').toUpperCase();
 
       // Create resident
       final residentBody = {
         'full_name': fullName,
-        'phone': phone,
+        'phone_number': phone,
         'email': _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : null,
         'birth_date': _birthDate != null
             ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -163,17 +163,27 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
           await Api.post('/residents/$residentId/guardians/', body: {
             'full_name': _guardianNameCtrl.text.trim(),
             'relationship': _guardianRelationship,
-            'phone': guardianPhone,
+            'phone_number': guardianPhone,
             'is_emergency_contact': true,
           });
         }
 
         // Upload document if number provided
-        if (_docNumberCtrl.text.trim().isNotEmpty) {
-          await Api.post('/residents/$residentId/documents/', body: {
+        if (docNumber.isNotEmpty || _docFile != null) {
+          final fields = <String, String>{
             'document_type': _docType,
-            'document_number': _docNumberCtrl.text.trim(),
-          });
+            'document_number': docNumber,
+          };
+          final docResp = await Api.multipart(
+            '/residents/$residentId/documents/',
+            fields: fields,
+            filePath: _docFile?.path,
+          );
+          if (docResp.statusCode != 201 && docResp.statusCode != 200 && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Жилец создан, но документ не загружен'), backgroundColor: AppColors.warning),
+            );
+          }
         }
 
         if (mounted) {
@@ -256,16 +266,20 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(9),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+                _PhoneFormatter(),
               ],
               decoration: const InputDecoration(
                 labelText: 'Телефон',
                 prefixText: '+998 ',
+                hintText: 'XX XXX XX XX',
                 prefixStyle: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               ),
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-              validator: (v) => v != null && v.length == 9 ? null : 'Введите 9 цифр',
+              validator: (v) {
+                final digits = v?.replaceAll(' ', '') ?? '';
+                return digits.length == 9 ? null : 'Введите 9 цифр';
+              },
             ),
             const SizedBox(height: 10),
             _textField(_emailCtrl, 'Email', keyboardType: TextInputType.emailAddress),
@@ -283,7 +297,7 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
                   ),
                   controller: TextEditingController(
                     text: _birthDate != null
-                        ? '${_birthDate!.day.toString().padLeft(2, '0')}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.year}'
+                        ? '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}'
                         : '',
                   ),
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
@@ -312,7 +326,26 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
               onChanged: (v) => setState(() => _docType = v ?? 'id_card'),
             ),
             const SizedBox(height: 10),
-            _textField(_docNumberCtrl, 'Номер документа'),
+            TextFormField(
+              controller: _docNumberCtrl,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [
+                _DocNumberFormatter(),
+                LengthLimitingTextInputFormatter(10), // XX XXXXXXX = 10 chars
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Номер документа',
+                hintText: 'AD 1234567',
+              ),
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              validator: (v) {
+                if (v == null || v.isEmpty) return null; // optional
+                final clean = v.replaceAll(' ', '');
+                if (clean.length != 9) return 'Формат: XX XXXXXXX (2 буквы + 7 цифр)';
+                if (!RegExp(r'^[A-Za-z]{2}\d{7}$').hasMatch(clean)) return 'Формат: XX XXXXXXX (2 буквы + 7 цифр)';
+                return null;
+              },
+            ),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickDocFile,
@@ -330,10 +363,16 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
                     size: 20,
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    _docFile != null ? 'Файл выбран' : 'Прикрепить файл',
+                  Expanded(child: Text(
+                    _docFile != null ? _docFile!.path.split('/').last : 'Прикрепить файл',
                     style: TextStyle(color: _docFile != null ? AppColors.success : AppColors.textMuted, fontSize: 14),
-                  ),
+                    overflow: TextOverflow.ellipsis,
+                  )),
+                  if (_docFile != null)
+                    GestureDetector(
+                      onTap: () => setState(() => _docFile = null),
+                      child: const Icon(Icons.close, color: AppColors.textMuted, size: 18),
+                    ),
                 ]),
               ),
             ),
@@ -407,12 +446,13 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
               controller: _guardianPhoneCtrl,
               keyboardType: TextInputType.phone,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(9),
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+                _PhoneFormatter(),
               ],
               decoration: const InputDecoration(
                 labelText: 'Телефон опекуна',
                 prefixText: '+998 ',
+                hintText: 'XX XXX XX XX',
                 prefixStyle: TextStyle(color: AppColors.textPrimary, fontSize: 14),
               ),
               style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
@@ -520,5 +560,45 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
         ),
       ),
     );
+  }
+}
+
+// +998 XX XXX XX XX formatter
+class _PhoneFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(' ', '');
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 2 || i == 5 || i == 7) buffer.write(' ');
+      buffer.write(digits[i]);
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
+  }
+}
+
+// XX XXXXXXX document number formatter (2 letters + space + 7 digits)
+class _DocNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final clean = newValue.text.replaceAll(' ', '').toUpperCase();
+    final buffer = StringBuffer();
+    for (int i = 0; i < clean.length; i++) {
+      if (i < 2) {
+        // First 2 must be letters
+        if (RegExp(r'[A-Za-z]').hasMatch(clean[i])) {
+          buffer.write(clean[i].toUpperCase());
+        }
+      } else {
+        if (i == 2) buffer.write(' ');
+        // Rest must be digits
+        if (RegExp(r'[0-9]').hasMatch(clean[i])) {
+          buffer.write(clean[i]);
+        }
+      }
+    }
+    final formatted = buffer.toString();
+    return TextEditingValue(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
   }
 }

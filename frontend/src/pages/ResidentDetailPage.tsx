@@ -155,7 +155,7 @@ export default function ResidentDetailPage() {
       <div className="flex gap-1 mb-6 border-b border-dark-border">
         {tabKeys.map((tk) => (
           <button key={tk} onClick={() => setActiveTab(tk)}
-            className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${activeTab === tk ? 'border-accent text-accent' : 'border-transparent text-text-secondary hover:text-white'}`}
+            className={`px-4 py-2.5 text-sm border-b-2 transition-colors ${activeTab === tk ? 'border-accent text-accent' : 'border-transparent text-text-secondary hover:text-accent'}`}
           >{t(tk)}</button>
         ))}
       </div>

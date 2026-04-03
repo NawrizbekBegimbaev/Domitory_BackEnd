@@ -5,6 +5,7 @@ from apps.billing.models import Charge, Payment, PaymentAllocation
 
 class ChargeListSerializer(serializers.ModelSerializer):
     resident_name = serializers.CharField(source='resident.full_name', read_only=True)
+    room_number = serializers.CharField(source='room.room_number', read_only=True, default=None)
     paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     remaining = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
@@ -12,8 +13,10 @@ class ChargeListSerializer(serializers.ModelSerializer):
         model = Charge
         fields = [
             'id', 'resident', 'resident_name',
-            'period_month', 'period_year', 'amount',
-            'paid_amount', 'remaining',
+            'room', 'room_number',
+            'period_month', 'period_year',
+            'start_day', 'end_day', 'days_charged', 'is_prorated',
+            'amount', 'paid_amount', 'remaining',
             'status', 'due_date',
         ]
 

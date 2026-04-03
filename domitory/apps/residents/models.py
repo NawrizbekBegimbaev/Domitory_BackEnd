@@ -88,7 +88,7 @@ class ResidentDocument(TimestampMixin):
     resident = models.ForeignKey(Resident, on_delete=models.CASCADE, related_name='documents', verbose_name='Жилец')
     document_type = models.CharField('Тип документа', max_length=20, choices=DocumentType.choices)
     document_number = models.CharField('Номер документа', max_length=100, blank=True)
-    file = models.FileField('Файл', upload_to='residents/documents/')
+    file = models.FileField('Файл', upload_to='residents/documents/', blank=True)
 
     class Meta:
         ordering = ['-created_at']

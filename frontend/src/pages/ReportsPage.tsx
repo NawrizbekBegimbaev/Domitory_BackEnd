@@ -70,7 +70,7 @@ export default function ReportsPage() {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-md text-sm transition-colors ${
-              activeTab === tab.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-white'
+              activeTab === tab.key ? 'bg-accent text-white' : 'text-text-secondary hover:text-accent'
             }`}
           >
             {tab.label}
