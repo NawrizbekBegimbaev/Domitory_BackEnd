@@ -1,8 +1,10 @@
 # CLAUDE.md — Dormitory Platform
 
+> Полная документация по коду, бизнес-логике, API и эксплуатации: **DOCUMENTATION.md** в корне. Читать её первой.
+
 ## Описание проекта
 
-**Dormitory** — коммерческая платформа управления университетским общежитием.
+**EDormitory** (бренд «EDormitory by Naurizbek») — коммерческая платформа управления университетским общежитием.
 Заменяет бумажный учёт (тетради, Excel) и автоматизирует работу администрации.
 
 ### Этапы развития
@@ -22,8 +24,9 @@
 |-----------|-------------|
 | **Веб-приложение** | https://begimbaev-dormitory.uk |
 | **API** | https://begimbaev-dormitory.uk/api/v1/ |
-| **Сервер** | Hetzner CPX22 (3 vCPU, 4GB RAM, 80GB SSD) |
-| **IP** | 65.108.159.10 |
+| **Сервер** | Oracle Cloud Always Free, VM.Standard.A1.Flex (1 OCPU ARM, 6GB RAM), регион Frankfurt |
+| **IP** | 92.5.136.42 (ssh-алиас `oracle`, пользователь ubuntu, ключ ~/.ssh/oracle_dormitory.key) |
+| **Старый сервер** | Hetzner 65.108.159.10 — выведен из эксплуатации 2026-09-02 |
 | **ОС** | Ubuntu 24.04 |
 | **Домен** | begimbaev-dormitory.uk (Cloudflare) |
 | **SSL** | Cloudflare → Nginx (Full mode) |
@@ -45,25 +48,29 @@ systemctl status nginx
 
 ### Деплой обновлений
 
+Сервер: Oracle Cloud (переезд с Hetzner 2026-09-02). Все скрипты в `deploy/oracle/`, подробности в `deploy/oracle/README.md`.
+
 ```bash
-# Backend
-rsync -avz domitory/ root@65.108.159.10:/home/dormitory/backend/
-ssh root@65.108.159.10 "source /home/dormitory/venv/bin/activate && cd /home/dormitory/backend && python manage.py migrate && systemctl restart dormitory"
+# Backend + Frontend одной командой (tar по ssh, миграции, collectstatic, рестарт сервисов)
+bash deploy/oracle/deploy.sh oracle
 
-# Frontend
-cd frontend && npm run build
-rsync -avz dist/ root@65.108.159.10:/home/dormitory/frontend/
+# Любая manage.py-команда на сервере (всегда production-настройки + PostgreSQL)
+ssh oracle "sudo /home/dormitory/manage.sh <command>"
 
-# Telegram bot
-ssh root@65.108.159.10 "systemctl restart dormitory-bot"
+# Логи
+ssh oracle "sudo journalctl -u dormitory -f"
+ssh oracle "sudo journalctl -u dormitory-bot -f"
 ```
+
+**ВАЖНО:** на сервере manage.py по умолчанию берёт `config.settings.local` (SQLite). Никогда не запускать
+`python manage.py` напрямую — только через `/home/dormitory/manage.sh`.
 
 ### Переменные окружения (сервер: /home/dormitory/backend/.env)
 
 ```
 SECRET_KEY=<generated>
 DEBUG=False
-ALLOWED_HOSTS=begimbaev-dormitory.uk,www.begimbaev-dormitory.uk,65.108.159.10,localhost,127.0.0.1
+ALLOWED_HOSTS=begimbaev-dormitory.uk,www.begimbaev-dormitory.uk,92.5.136.42,localhost,127.0.0.1
 CORS_ALLOW_ALL_ORIGINS=False
 CORS_ALLOWED_ORIGINS=https://begimbaev-dormitory.uk,https://www.begimbaev-dormitory.uk
 DATABASE_URL=postgres://dormitory:<password>@localhost:5432/dormitory
@@ -111,7 +118,9 @@ Domitory_BackEnd/
 │   │   ├── occupancy/           # Договоры, заселение, история, перевод
 │   │   ├── billing/             # Начисления, оплаты, FIFO, авто-генерация
 │   │   ├── reports/             # 6 отчётов
-│   │   └── audit/               # Аудит-лог
+│   │   ├── audit/               # Аудит-лог
+│   │   └── access_control/      # События входа/выхода (AccessEvent)
+│   ├── domitory/, main/         # LEGACY первой версии (2024, Heroku) — не используется, удалить
 │   ├── common/                  # Миксины, пагинация, ошибки, права, валидаторы
 │   └── requirements/            # base.txt, local.txt, production.txt, test.txt
 │
@@ -139,6 +148,8 @@ Domitory_BackEnd/
 │       │   └── menu/            # Навигация + профиль
 │       └── main.dart
 │
+├── deploy/oracle/               # Скрипты деплоя и инструкция по серверу
+├── DOCUMENTATION.md             # Полная документация (источник правды)
 ├── qa/                          # QA тесты (API + E2E)
 │   ├── conftest.py              # TEST_ENV=local|prod
 │   ├── test_api.py              # 72 API теста
@@ -243,8 +254,11 @@ GET/POST        /contracts/
 GET/PUT         /contracts/{id}/
 POST            /contracts/{id}/terminate/
 GET/POST        /assignments/
+POST            /assignments/full-room/      # покупка всей комнаты группой
 GET/PUT         /assignments/{id}/
-POST            /assignments/{id}/close/
+POST            /assignments/{id}/close/     # выселение
+POST            /assignments/{id}/transfer/  # перевод
+GET             /stay-records/
 
 # Billing
 GET/POST        /charges/
@@ -261,6 +275,14 @@ GET             /reports/summary/
 
 # Audit
 GET             /audit/
+
+# Access control (турникет; интеграции с оборудованием пока нет)
+GET/POST        /access-events/
+GET/PUT/DELETE  /access-events/{id}/
+
+# Guardians / Documents (прямые CRUD, помимо вложенных под residents)
+GET/POST        /guardians/
+GET/POST        /documents/
 ```
 
 ---
@@ -268,14 +290,14 @@ GET             /audit/
 ## Тесты
 
 ```bash
-# Backend unit тесты (249 тестов)
+# Backend unit тесты (132 теста)
 cd domitory && pytest
 
 # API тесты — локально (72 теста)
 pytest qa/test_api.py -v
 
-# API тесты — прод
-TEST_ENV=prod pytest qa/test_api.py -v
+# API тесты — прод (учётка админа через env; на Windows: py -3.13 -m pytest)
+TEST_ENV=prod QA_ADMIN_EMAIL=... QA_ADMIN_PASSWORD=... pytest qa/test_api.py -v
 
 # E2E тесты — локально (50 тестов)
 pytest qa/test_e2e.py -v --headed
@@ -343,4 +365,6 @@ rsync -av mobile_admin/lib/ ~/mobile_admin_build/lib/
 4. Никаких секретов в коде, только через .env
 5. iOS билд только из `~/mobile_admin_build/`
 6. После изменений в mobile_admin/lib/ — синхронизировать в ~/mobile_admin_build/lib/
-7. После бэкенд изменений — деплой: rsync + migrate + restart
+7. После бэкенд изменений — деплой: `bash deploy/oracle/deploy.sh oracle`
+8. manage.py на сервере только через `/home/dormitory/manage.sh` (иначе SQLite вместо PostgreSQL)
+9. При изменении логики или API — обновить DOCUMENTATION.md

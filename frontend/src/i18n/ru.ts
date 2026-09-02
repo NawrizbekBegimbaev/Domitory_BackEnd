@@ -441,6 +441,17 @@ const ru = {
   langRu: 'Русский',
   langUz: "O'zbekcha",
   langKk: 'Qaraqalpaqsha',
+
+  // Access Control
+  navAccess: 'Контроль доступа',
+  accessTitle: 'Журнал входов/выходов',
+  accessDesc: 'События прохода жильцов',
+  direction: 'Направление',
+  directionIn: 'Вход',
+  directionOut: 'Выход',
+  allDirections: 'Все направления',
+  device: 'Устройство',
+  cardNumber: 'Номер карты',
 }
 
 export default ru

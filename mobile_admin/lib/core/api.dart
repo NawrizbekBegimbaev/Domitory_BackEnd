@@ -9,24 +9,24 @@ class Api {
   // static const baseUrl = 'http://localhost:8000/api/v1'; // iOS simulator
   static const baseUrl = 'https://begimbaev-dormitory.uk/api/v1'; // Production
 
-  static Future<String?> get accessToken async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('access_token');
-  }
+  static SharedPreferences? _prefs;
+  static Future<SharedPreferences> get _sp async =>
+      _prefs ??= await SharedPreferences.getInstance();
 
-  static Future<String?> get refreshToken async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('refresh_token');
-  }
+  static Future<String?> get accessToken async =>
+      (await _sp).getString('access_token');
+
+  static Future<String?> get refreshToken async =>
+      (await _sp).getString('refresh_token');
 
   static Future<void> saveTokens(String access, String refresh) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sp;
     await prefs.setString('access_token', access);
     await prefs.setString('refresh_token', refresh);
   }
 
   static Future<void> clearTokens() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _sp;
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');
   }
@@ -50,7 +50,7 @@ class Api {
         );
         if (refreshResp.statusCode == 200) {
           final data = jsonDecode(refreshResp.body);
-          final prefs = await SharedPreferences.getInstance();
+          final prefs = await _sp;
           await prefs.setString('access_token', data['access']);
           return retry();
         }

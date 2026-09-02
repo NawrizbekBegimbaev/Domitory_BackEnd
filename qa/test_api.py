@@ -22,6 +22,7 @@ API Tests — полное покрытие всех endpoints.
 """
 import pytest
 import requests
+from conftest import ADMIN_EMAIL, ADMIN_PASSWORD
 import random
 import string
 
@@ -40,7 +41,7 @@ IDS = {}
 class TestAuth:
 
     def test_login_success(self, api_base):
-        r = requests.post(f'{api_base}/auth/login/', json={'email': 'admin@dormitory.uz', 'password': 'admin123'})
+        r = requests.post(f'{api_base}/auth/login/', json={'email': ADMIN_EMAIL, 'password': ADMIN_PASSWORD})
         assert r.status_code == 200
         data = r.json()
         assert 'access' in data
@@ -48,7 +49,7 @@ class TestAuth:
         assert 'user_id' in data
 
     def test_login_wrong_password(self, api_base):
-        r = requests.post(f'{api_base}/auth/login/', json={'email': 'admin@dormitory.uz', 'password': 'wrong'})
+        r = requests.post(f'{api_base}/auth/login/', json={'email': ADMIN_EMAIL, 'password': 'wrong'})
         assert r.status_code == 401
 
     def test_login_nonexistent_user(self, api_base):
@@ -72,14 +73,14 @@ class TestAuth:
         assert r.status_code == 401
 
     def test_refresh_token(self, api_base):
-        login = requests.post(f'{api_base}/auth/login/', json={'email': 'admin@dormitory.uz', 'password': 'admin123'})
+        login = requests.post(f'{api_base}/auth/login/', json={'email': ADMIN_EMAIL, 'password': ADMIN_PASSWORD})
         refresh = login.json()['refresh']
         r = requests.post(f'{api_base}/auth/refresh/', json={'refresh': refresh})
         assert r.status_code == 200
         assert 'access' in r.json()
 
     def test_password_reset_request(self, api_base):
-        r = requests.post(f'{api_base}/auth/password-reset/', json={'email': 'admin@dormitory.uz'})
+        r = requests.post(f'{api_base}/auth/password-reset/', json={'email': ADMIN_EMAIL})
         assert r.status_code == 200
 
     def test_password_reset_missing_email(self, api_base):

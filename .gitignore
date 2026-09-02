@@ -33,3 +33,14 @@ mobile_admin/android/app/build/
 # macOS
 .DS_Store
 *.fig
+
+# Deploy backups (DB dumps, media)
+deploy/oracle/backups/
+
+# SSH keys (never commit)
+*.key
+*.key.pub
+*.pem
+
+# Presentation preview renders (contain local paths)
+docs/presentation/render/

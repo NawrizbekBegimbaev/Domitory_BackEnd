@@ -40,7 +40,9 @@ class _DormitoryAppState extends State<DormitoryApp> {
 
   void _initShakeDetector() {
     try {
-      _accelSub = accelerometerEventStream().listen((event) {
+      _accelSub = accelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 200),
+      ).listen((event) {
         final g = sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
         if (g > 25) {
           final now = DateTime.now();
@@ -73,7 +75,7 @@ class _DormitoryAppState extends State<DormitoryApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      title: 'Dormitory Admin',
+      title: 'EDormitory Admin',
       debugShowCheckedModeBanner: false,
       theme: darkTheme,
       home: Consumer<AuthProvider>(

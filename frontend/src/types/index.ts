@@ -236,6 +236,18 @@ export interface Debtor {
   debt: string
 }
 
+export interface AccessEvent {
+  id: string
+  resident: string
+  resident_name: string
+  direction: 'in' | 'out'
+  direction_display: string
+  timestamp: string
+  device_name: string
+  card_number: string
+  created_at: string
+}
+
 export interface PaginatedResponse<T> {
   count: number
   next: string | null

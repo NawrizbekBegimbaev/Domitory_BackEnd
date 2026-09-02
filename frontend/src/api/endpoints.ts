@@ -4,7 +4,7 @@ import type {
   ResidentDocument, Contract, RoomAssignment, StayRecord,
   Charge, Payment, BalanceResponse,
   AuditLog, SummaryReport, OccupancyBuilding, Debtor,
-  PaginatedResponse,
+  AccessEvent, PaginatedResponse,
 } from '../types'
 
 // Auth
@@ -154,4 +154,10 @@ export const reportsApi = {
 export const auditApi = {
   list: (params?: Record<string, string>) =>
     api.get<PaginatedResponse<AuditLog>>('/audit/', { params }),
+}
+
+// Access Events
+export const accessEventsApi = {
+  list: (params?: Record<string, string>) =>
+    api.get<PaginatedResponse<AccessEvent>>('/access-events/', { params }),
 }

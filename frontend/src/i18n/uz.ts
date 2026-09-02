@@ -441,6 +441,17 @@ const uz = {
   langRu: 'Русский',
   langUz: "O'zbekcha",
   langKk: 'Qaraqalpaqsha',
+
+  // Access Control
+  navAccess: 'Kirish nazorati',
+  accessTitle: 'Kirish/chiqish jurnali',
+  accessDesc: "Yashovchilarning o'tish hodisalari",
+  direction: "Yo'nalish",
+  directionIn: 'Kirish',
+  directionOut: 'Chiqish',
+  allDirections: "Barcha yo'nalishlar",
+  device: 'Qurilma',
+  cardNumber: 'Karta raqami',
 }
 
 export default uz

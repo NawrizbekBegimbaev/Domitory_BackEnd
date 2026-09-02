@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
 
-class AjouAppBar extends StatelessWidget implements PreferredSizeWidget {
+class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? leading;
-  const AjouAppBar({super.key, this.actions, this.leading});
+  const BrandAppBar({super.key, this.actions, this.leading});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -13,10 +13,9 @@ class AjouAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       leading: leading,
-      title: Row(mainAxisSize: MainAxisSize.min, children: [
-        Image.asset('assets/ajou_logo.png', height: 32),
-        const SizedBox(width: 10),
-        const Text('DORMITORY', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 2)),
+      title: const Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('EDormitory', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.5)),
+        Text('by Naurizbek', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w500)),
       ]),
       actions: actions,
     );

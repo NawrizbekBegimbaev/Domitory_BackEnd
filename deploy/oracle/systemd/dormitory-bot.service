@@ -1,0 +1,16 @@
+[Unit]
+Description=Dormitory Telegram bot (long-polling)
+After=network-online.target dormitory.service
+Wants=network-online.target
+
+[Service]
+User=dormitory
+Group=dormitory
+WorkingDirectory=/home/dormitory/backend
+EnvironmentFile=/home/dormitory/backend/.env
+ExecStart=/home/dormitory/venv/bin/python manage.py run_telegram_bot
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

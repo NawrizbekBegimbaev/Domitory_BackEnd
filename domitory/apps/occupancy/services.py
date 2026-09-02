@@ -27,12 +27,35 @@ class ContractService:
         # Close all active assignments and free rooms
         active_assignments = RoomAssignment.objects.filter(
             contract=contract, status=RoomAssignment.Status.ACTIVE,
-        ).select_related('room')
+        ).select_related('room', 'resident')
         for assignment in active_assignments:
+            room = assignment.room
+            beds_freed = assignment.beds_purchased
+
             assignment.status = RoomAssignment.Status.COMPLETED
             assignment.end_date = timezone.now().date()
             assignment.save(update_fields=['status', 'end_date'])
-            RoomService.decrement_occupancy(assignment.room)
+
+            # Free all beds (not just 1)
+            room.current_occupancy = max(0, room.current_occupancy - beds_freed)
+            if room.current_occupancy < room.capacity:
+                room.status = Room.Status.AVAILABLE
+            room.save(update_fields=['current_occupancy', 'status'])
+
+            # Reset remaining full-room residents to 1 bed each
+            remaining = RoomAssignment.objects.filter(
+                room=room, status=RoomAssignment.Status.ACTIVE,
+            ).select_related('resident', 'contract')
+            for ra in remaining:
+                if ra.beds_purchased > 1:
+                    old_beds = ra.beds_purchased
+                    ra.beds_purchased = 1
+                    ra.save(update_fields=['beds_purchased'])
+                    room.current_occupancy = max(0, room.current_occupancy - (old_beds - 1))
+                    room.save(update_fields=['current_occupancy'])
+                    RoomAssignmentService._recalculate_resident_charges(
+                        ra.resident, room, ra.contract, 1
+                    )
 
         # Pro-rata refund
         ContractService._refund_on_termination(contract, user)
@@ -300,8 +323,12 @@ class RoomAssignmentService:
 
         for ra in remaining:
             if ra.beds_purchased > 1:
+                old_beds = ra.beds_purchased
                 ra.beds_purchased = 1
                 ra.save(update_fields=['beds_purchased'])
+                # Free the extra beds in room occupancy
+                room.current_occupancy = max(0, room.current_occupancy - (old_beds - 1))
+                room.save(update_fields=['current_occupancy'])
                 # Recalculate charges: now pays for 1 bed only
                 RoomAssignmentService._recalculate_resident_charges(
                     ra.resident, room, ra.contract, 1

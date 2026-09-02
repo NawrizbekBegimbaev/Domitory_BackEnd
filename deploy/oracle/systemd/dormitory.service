@@ -1,0 +1,16 @@
+[Unit]
+Description=Dormitory Django backend (Gunicorn)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=dormitory
+Group=dormitory
+WorkingDirectory=/home/dormitory/backend
+EnvironmentFile=/home/dormitory/backend/.env
+ExecStart=/home/dormitory/venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 60 --access-logfile - --error-logfile -
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

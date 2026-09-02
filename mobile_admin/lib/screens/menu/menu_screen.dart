@@ -28,7 +28,7 @@ class MenuScreen extends StatelessWidget {
     };
 
     return Scaffold(
-      appBar: const AjouAppBar(),
+      appBar: const BrandAppBar(),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

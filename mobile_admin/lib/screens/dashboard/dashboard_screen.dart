@@ -23,14 +23,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load() async {
-    final summaryResp = await Api.get('/reports/summary/');
-    final occResp = await Api.get('/reports/occupancy/');
-    final debtResp = await Api.get('/reports/debtors/');
+    final results = await Future.wait([
+      Api.get('/reports/summary/'),
+      Api.get('/reports/occupancy/'),
+      Api.get('/reports/debtors/'),
+    ]);
     if (mounted) {
       setState(() {
-        if (summaryResp.statusCode == 200) _summary = jsonDecode(summaryResp.body);
-        if (occResp.statusCode == 200) _occupancy = jsonDecode(occResp.body);
-        if (debtResp.statusCode == 200) _debtors = jsonDecode(debtResp.body);
+        if (results[0].statusCode == 200) _summary = jsonDecode(results[0].body);
+        if (results[1].statusCode == 200) _occupancy = jsonDecode(results[1].body);
+        if (results[2].statusCode == 200) _debtors = jsonDecode(results[2].body);
       });
     }
   }

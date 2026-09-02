@@ -25,8 +25,8 @@ else:
     API_BASE = 'http://127.0.0.1:8000/api/v1'
     FRONTEND_URL = 'http://127.0.0.1:5173'
 
-ADMIN_EMAIL = 'admin@dormitory.uz'
-ADMIN_PASSWORD = 'admin123'
+ADMIN_EMAIL = os.environ.get('QA_ADMIN_EMAIL', 'admin@dormitory.uz')
+ADMIN_PASSWORD = os.environ.get('QA_ADMIN_PASSWORD', 'admin123')
 
 
 @pytest.fixture(scope='session')

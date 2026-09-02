@@ -123,9 +123,8 @@ export default function LoginPage({ onLogin }: Props) {
       <div className="w-full max-w-md">
         <div className="bg-dark-card border border-dark-border rounded-2xl p-8">
           <div className="text-center mb-8">
-            <img src="/ajou_logo.png" alt="Ajou University" className="w-20 h-20 mx-auto mb-3" />
-            <h1 className="text-2xl font-bold tracking-widest text-accent">DORMITORY</h1>
-            <p className="text-text-muted text-xs mt-1 font-medium">Ajou University in Tashkent</p>
+            <h1 className="text-3xl font-bold tracking-wide text-accent">EDormitory</h1>
+            <p className="text-text-muted text-xs mt-1 font-medium">by Naurizbek</p>
             <p className="text-text-secondary text-sm mt-3">
               {mode === 'login' || mode === 'phone' || mode === 'phoneOtp' ? t('loginTitle') : t('resetPassword')}
             </p>

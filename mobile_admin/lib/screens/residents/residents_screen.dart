@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
@@ -18,11 +19,18 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
   String _statusFilter = '';
   String _search = '';
   bool _loading = true;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -44,7 +52,7 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
     final tabLabels = ['Все', 'Ожидающие', 'Активные', 'Выселенные', 'Выпустились'];
 
     return Scaffold(
-      appBar: const AjouAppBar(),
+      appBar: const BrandAppBar(),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -58,7 +66,11 @@ class _ResidentsScreenState extends State<ResidentsScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
-            onChanged: (v) { _search = v; _load(); },
+            onChanged: (v) {
+              _search = v;
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 300), _load);
+            },
             decoration: const InputDecoration(hintText: 'Поиск по имени или ID...', prefixIcon: Icon(Icons.search, color: AppColors.textMuted, size: 20)),
           ),
         ),

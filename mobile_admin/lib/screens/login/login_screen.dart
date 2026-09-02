@@ -41,10 +41,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   Future<void> _loginEmail() async {
     setState(() { _loading = true; _error = null; });
-    final auth = context.read<AuthProvider>();
-    final success = await auth.loginEmail(_emailCtrl.text, _passwordCtrl.text);
-    if (!success && mounted) {
-      setState(() { _error = 'Неверный email или пароль'; _loading = false; });
+    try {
+      final auth = context.read<AuthProvider>();
+      final success = await auth.loginEmail(_emailCtrl.text, _passwordCtrl.text);
+      if (!success && mounted) {
+        setState(() { _error = 'Неверный email или пароль'; _loading = false; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Ошибка сети: $e'; _loading = false; });
     }
   }
 
@@ -136,20 +140,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   Future<void> _sendOtp() async {
     setState(() { _loading = true; _error = null; });
-    final auth = context.read<AuthProvider>();
-    final ok = await auth.loginPhoneRequest(_phoneCtrl.text.replaceAll(' ', ''));
-    setState(() {
-      _loading = false;
-      if (ok) { _otpSent = true; } else { _error = 'Номер не найден или Telegram не привязан'; }
-    });
+    try {
+      final auth = context.read<AuthProvider>();
+      final ok = await auth.loginPhoneRequest(_phoneCtrl.text.replaceAll(' ', ''));
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (ok) { _otpSent = true; } else { _error = 'Номер не найден или Telegram не привязан'; }
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Ошибка сети: $e'; _loading = false; });
+    }
   }
 
   Future<void> _confirmOtp() async {
     setState(() { _loading = true; _error = null; });
-    final auth = context.read<AuthProvider>();
-    final ok = await auth.loginPhoneConfirm(_phoneCtrl.text.replaceAll(' ', ''), _otpCtrl.text);
-    if (!ok && mounted) {
-      setState(() { _error = 'Неверный код'; _loading = false; });
+    try {
+      final auth = context.read<AuthProvider>();
+      final ok = await auth.loginPhoneConfirm(_phoneCtrl.text.replaceAll(' ', ''), _otpCtrl.text);
+      if (!ok && mounted) {
+        setState(() { _error = 'Неверный код'; _loading = false; });
+      }
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Ошибка сети: $e'; _loading = false; });
     }
   }
 
@@ -162,12 +176,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Logo
-                Image.asset('assets/ajou_logo.png', height: 80),
-                const SizedBox(height: 12),
-                const Text('DORMITORY', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.accent, letterSpacing: 4)),
-                const SizedBox(height: 4),
-                const Text('Ajou University in Tashkent', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                // Brand
+                const Text('EDormitory', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.accent, letterSpacing: 0.5)),
+                const SizedBox(height: 2),
+                const Text('by Naurizbek', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 32),
 
                 // Tabs

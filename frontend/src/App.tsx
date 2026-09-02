@@ -12,6 +12,7 @@ import FinancePage from './pages/FinancePage'
 import NewPaymentPage from './pages/NewPaymentPage'
 import ReportsPage from './pages/ReportsPage'
 import AuditPage from './pages/AuditPage'
+import AccessPage from './pages/AccessPage'
 import UsersPage from './pages/UsersPage'
 import BuildingsPage from './pages/BuildingsPage'
 import FloorsPage from './pages/FloorsPage'
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="finance" element={<FinancePage />} />
             <Route path="finance/payment/new" element={<NewPaymentPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="access" element={<AccessPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="*" element={<Navigate to="/" />} />

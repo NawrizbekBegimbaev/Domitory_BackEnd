@@ -6,9 +6,9 @@ class AppColors {
   static const card2 = Color(0xFFEEF0F4);       // Slightly darker card
   static const border = Color(0xFFCDD5DF);       // Visible border
   static const hover = Color(0xFFE5E9F0);       // Hover state
-  static const accent = Color(0xFF003153);       // Ajou Blue (Prussian Blue)
-  static const accentHover = Color(0xFF002240);  // Ajou Blue darker
-  static const accentLight = Color(0xFF2B7CB8);  // Bright Ajou Blue for badges/links
+  static const accent = Color(0xFF003153);       // Prussian Blue
+  static const accentHover = Color(0xFF002240);  // Prussian Blue darker
+  static const accentLight = Color(0xFF2B7CB8);  // Bright blue for badges/links
   static const success = Color(0xFF15803D);      // Darker green
   static const danger = Color(0xFFB91C1C);       // Darker red
   static const warning = Color(0xFFB45309);      // Darker amber

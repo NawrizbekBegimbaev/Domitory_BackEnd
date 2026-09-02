@@ -15,21 +15,19 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
-  int _rebuildKey = 0;
+
+  final _screens = const [
+    DashboardScreen(),
+    ResidentsScreen(),
+    RoomsScreen(),
+    FinanceScreen(),
+    MenuScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    // Rebuild active tab when switching to force data refresh
-    final screens = [
-      DashboardScreen(key: ValueKey('dash_$_rebuildKey')),
-      ResidentsScreen(key: ValueKey('res_$_rebuildKey')),
-      RoomsScreen(key: ValueKey('rooms_$_rebuildKey')),
-      FinanceScreen(key: ValueKey('fin_$_rebuildKey')),
-      const MenuScreen(),
-    ];
-
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: screens),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
@@ -37,14 +35,8 @@ class _HomeShellState extends State<HomeShell> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) {
-            if (i == _currentIndex) {
-              // Tap on current tab — refresh
-              setState(() => _rebuildKey++);
-            } else {
-              setState(() {
-                _currentIndex = i;
-                _rebuildKey++;
-              });
+            if (i != _currentIndex) {
+              setState(() => _currentIndex = i);
             }
           },
           items: const [

@@ -85,7 +85,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AjouAppBar(),
+      appBar: const BrandAppBar(),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -312,8 +312,8 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
       final resp = await Api.get('/assignments/', params: {'room': widget.roomId, 'status': 'active'});
       if (resp.statusCode == 200 && mounted) {
         final assignments = jsonDecode(resp.body)['results'] ?? [];
-        // Load resident names and photos
-        for (var a in assignments) {
+        // Load all resident details in parallel
+        final futures = assignments.map<Future<void>>((a) async {
           try {
             final rResp = await Api.get('/residents/${a['resident']}/');
             if (rResp.statusCode == 200) {
@@ -322,7 +322,8 @@ class _RoomDetailSheetState extends State<_RoomDetailSheet> {
               a['resident_photo'] = rData['photo'];
             }
           } catch (_) {}
-        }
+        });
+        await Future.wait(futures);
         _residents = assignments;
       }
     } catch (_) {}

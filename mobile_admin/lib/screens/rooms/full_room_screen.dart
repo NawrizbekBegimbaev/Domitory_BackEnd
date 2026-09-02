@@ -18,13 +18,13 @@ class _ResidentEntry {
   List<dynamic> searchResults = [];
   String searchQuery = '';
   bool searching = false;
-  int months = 0;
 }
 
 class _FullRoomScreenState extends State<FullRoomScreen> {
   List<_ResidentEntry> _entries = [];
   List<dynamic> _buildings = [];
   bool _saving = false;
+  int _months = 0;
 
   int get _capacity => widget.room['capacity'] ?? 1;
   double get _pricePerBed => double.tryParse(widget.room['monthly_price']?.toString() ?? '0') ?? 0;
@@ -72,7 +72,7 @@ class _FullRoomScreenState extends State<FullRoomScreen> {
     return buf.toString();
   }
 
-  bool get _canSave => _entries.every((e) => e.resident != null && e.months > 0);
+  bool get _canSave => _months > 0 && _entries.every((e) => e.resident != null);
 
   Future<void> _save() async {
     if (!_canSave) return;
@@ -85,9 +85,10 @@ class _FullRoomScreenState extends State<FullRoomScreen> {
 
       final assignments = <Map<String, String>>[];
 
+      final endDate = DateTime(today.year, today.month + _months, today.day);
+      final endStr = '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
+
       for (final entry in _entries) {
-        final endDate = DateTime(today.year, today.month + entry.months, today.day);
-        final endStr = '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
         final rand = (Random().nextInt(9000) + 1000).toString();
 
         final contractResp = await Api.post('/contracts/', body: {
@@ -148,7 +149,7 @@ class _FullRoomScreenState extends State<FullRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AjouAppBar(),
+      appBar: const BrandAppBar(),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         const Text('Вся комната', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
@@ -171,6 +172,28 @@ class _FullRoomScreenState extends State<FullRoomScreen> {
                 style: TextStyle(color: AppColors.accent, fontSize: 15, fontWeight: FontWeight.w700)),
           ]),
         ),
+        const SizedBox(height: 20),
+
+        // Duration — shared for all
+        const Text('Срок проживания (месяцев)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        const SizedBox(height: 8),
+        Wrap(spacing: 6, runSpacing: 6, children: List.generate(12, (mi) {
+          final m = mi + 1;
+          final selected = _months == m;
+          return GestureDetector(
+            onTap: () => setState(() => _months = m),
+            child: Container(
+              width: 42, height: 36,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.accent : AppColors.card,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: selected ? AppColors.accent : AppColors.border),
+              ),
+              alignment: Alignment.center,
+              child: Text('$m', style: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 14)),
+            ),
+          );
+        })),
         const SizedBox(height: 20),
 
         // Residents
@@ -287,28 +310,6 @@ class _FullRoomScreenState extends State<FullRoomScreen> {
               ),
             ]),
           ),
-          const SizedBox(height: 10),
-
-          // Duration
-          const Text('Срок (месяцев)', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Wrap(spacing: 6, runSpacing: 6, children: List.generate(12, (mi) {
-            final m = mi + 1;
-            final selected = entry.months == m;
-            return GestureDetector(
-              onTap: () => setState(() => _entries[index].months = m),
-              child: Container(
-                width: 42, height: 36,
-                decoration: BoxDecoration(
-                  color: selected ? AppColors.accent : AppColors.card,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: selected ? AppColors.accent : AppColors.border),
-                ),
-                alignment: Alignment.center,
-                child: Text('$m', style: TextStyle(color: selected ? Colors.white : AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 14)),
-              ),
-            );
-          })),
         ],
       ]),
     );

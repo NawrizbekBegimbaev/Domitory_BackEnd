@@ -160,10 +160,62 @@ class _UsersScreenState extends State<UsersScreen> {
             isActive ? 'Активен' : 'Заблокирован',
             valueColor: isActive ? AppColors.success : AppColors.danger,
           ),
+          if (roleName != 'platform_admin') ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
+                onPressed: () => _deleteUser(u, ctx),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Удалить пользователя', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
         ]),
       ),
     );
+  }
+
+  Future<void> _deleteUser(dynamic u, BuildContext sheetContext) async {
+    final name = u['full_name'] ?? '';
+    final userId = u['id'].toString();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Удалить пользователя?', style: TextStyle(fontSize: 16)),
+        content: Text('"$name" будет удалён. Это действие нельзя отменить.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final resp = await Api.delete('/users/$userId/');
+      if (mounted) {
+        Navigator.pop(sheetContext);
+        if (resp.statusCode == 204 || resp.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Пользователь удалён'), backgroundColor: AppColors.success));
+          _load();
+        } else {
+          final body = jsonDecode(resp.body);
+          final msg = body['error']?['message'] ?? body['detail'] ?? 'Ошибка удаления';
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg.toString()), backgroundColor: AppColors.danger));
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.danger));
+    }
   }
 
   Widget _detailRow(IconData icon, String label, String value, {Color? valueColor}) {

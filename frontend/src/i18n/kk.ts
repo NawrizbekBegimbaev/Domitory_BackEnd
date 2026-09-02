@@ -441,6 +441,17 @@ const kk = {
   langRu: 'Русский',
   langUz: "O'zbekcha",
   langKk: 'Qaraqalpaqsha',
+
+  // Access Control
+  navAccess: 'Kirisiw basqariw',
+  accessTitle: 'Kirisiw/shig\'iw jurnali',
+  accessDesc: 'Jasawshilarding\' o\'tiw waqa\'lari',
+  direction: 'Bag\'it',
+  directionIn: 'Kirisiw',
+  directionOut: 'Shig\'iw',
+  allDirections: 'Ba\'rlik bag\'itlar',
+  device: 'Qurilma',
+  cardNumber: 'Karta nomeri',
 }
 
 export default kk

@@ -383,6 +383,89 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
     }
   }
 
+  Future<void> _onDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Удалить жильца?', style: TextStyle(fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${_resident?['full_name'] ?? ''} будет удалён из системы.', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          const Text('Это действие нельзя отменить.', style: TextStyle(color: AppColors.danger, fontSize: 12)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final resp = await Api.delete('/residents/${widget.residentId}/');
+      if (!mounted) return;
+      if (resp.statusCode == 204 || resp.statusCode == 200) {
+        _showSnack('Жилец удалён');
+        Navigator.pop(context, true);
+      } else {
+        final body = jsonDecode(resp.body);
+        _showSnack(body['error']?['message'] ?? body['detail'] ?? 'Ошибка удаления', isError: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Ошибка: $e', isError: true);
+    }
+  }
+
+  Future<void> _onWithdraw() async {
+    final debt = _toDouble(_balance?['debt']);
+    if (debt >= 0) {
+      _showSnack('Нет переплаты для вывода', isError: true);
+      return;
+    }
+    final overpayment = debt.abs();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Вывод переплаты', style: TextStyle(fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Переплата: ${_formatAmount(overpayment)} UZS', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          const SizedBox(height: 8),
+          const Text('Средства будут возвращены жильцу.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Вывести'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final resp = await Api.post('/residents/${widget.residentId}/withdraw/');
+      if (!mounted) return;
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        _showSnack('Переплата выведена');
+        _loadAll();
+      } else {
+        final body = jsonDecode(resp.body);
+        _showSnack(body['error']?['message'] ?? body['detail'] ?? 'Ошибка вывода', isError: true);
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Ошибка: $e', isError: true);
+    }
+  }
+
   void _showSnack(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -456,7 +539,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(colors: debt > 0
-                    ? [const Color(0xFF003153), const Color(0xFF001A2E)]  // Ajou blue — debt
+                    ? [const Color(0xFF003153), const Color(0xFF001A2E)]  // Prussian blue — debt
                     : [const Color(0xFF16A34A), const Color(0xFF15803D)]),  // green — no debt / overpaid
               ),
               child: Row(children: [
@@ -503,6 +586,13 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                   Expanded(child: _actionButton(Icons.meeting_room_outlined, 'Назначить комнату', Colors.blue, _onAssignRoom)),
               ]),
             ],
+            const SizedBox(height: 8),
+            Row(children: [
+              if (debt < 0)
+                Expanded(child: _actionButton(Icons.account_balance_wallet_outlined, 'Вывод переплаты', AppColors.success, _onWithdraw)),
+              if (debt < 0) const SizedBox(width: 8),
+              Expanded(child: _actionButton(Icons.delete_outline, 'Удалить', AppColors.danger, _onDelete)),
+            ]),
           ]),
         )),
         SliverPersistentHeader(

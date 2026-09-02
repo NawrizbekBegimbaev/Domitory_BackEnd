@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Users, DoorOpen, FileText,
-  Wallet, BarChart3, Shield, UserCog, LogOut, Building2, Globe,
+  Wallet, BarChart3, Shield, UserCog, LogOut, Building2, Globe, ScanLine,
 } from 'lucide-react'
 import type { User } from '../types'
 import { getInitials } from '../utils/format'
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { to: '/contracts', icon: FileText, labelKey: 'navContracts', roles: ['platform_admin', 'university_admin', 'dorm_manager'] },
   { to: '/finance', icon: Wallet, labelKey: 'navFinance', roles: ['platform_admin', 'university_admin', 'accountant'] },
   { to: '/reports', icon: BarChart3, labelKey: 'navReports', roles: ['platform_admin', 'university_admin', 'dorm_manager', 'accountant', 'security_staff'] },
+  { to: '/access', icon: ScanLine, labelKey: 'navAccess', roles: ['platform_admin', 'university_admin', 'dorm_manager', 'security_staff'] },
   { to: '/audit', icon: Shield, labelKey: 'navAudit', roles: ['platform_admin', 'university_admin'] },
   { to: '/users', icon: UserCog, labelKey: 'navUsers', roles: ['platform_admin', 'university_admin'] },
 ]
@@ -49,10 +50,10 @@ export default function Sidebar({ user, onLogout, mobileOpen = false, onMobileCl
   return (
     <aside className={`fixed left-0 top-0 bottom-0 w-56 bg-dark-card border-r border-dark-border flex flex-col z-50 transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
       <div className="flex items-center gap-3 px-4 py-4 border-b border-dark-border">
-        <img src="/ajou_logo.png" alt="Ajou" className="w-9 h-9" />
         <div>
-          <div className="font-bold text-sm tracking-widest text-accent">DORMITORY</div>
-          <div className="text-[10px] text-text-muted uppercase">{roleName.replace('_', ' ')}</div>
+          <div className="font-bold text-base tracking-wide text-accent leading-tight">EDormitory</div>
+          <div className="text-[10px] text-text-muted leading-tight">by Naurizbek</div>
+          <div className="text-[10px] text-text-muted uppercase mt-1">{roleName.replace('_', ' ')}</div>
         </div>
       </div>
 
