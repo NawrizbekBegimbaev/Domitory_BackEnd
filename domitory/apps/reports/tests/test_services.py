@@ -125,3 +125,50 @@ class TestResidentsReport:
         resident.save()
         result = list(ReportService.residents_report(status_filter='evicted'))
         assert len(result) == 1
+
+
+@pytest.mark.django_db
+class TestPeriodRange:
+
+    def test_month(self):
+        from apps.reports.services import period_range
+        assert period_range('month', date(2026, 2, 10)) == (date(2026, 2, 1), date(2026, 2, 28))
+        assert period_range('month', date(2026, 12, 10)) == (date(2026, 12, 1), date(2026, 12, 31))
+
+    def test_quarter(self):
+        from apps.reports.services import period_range
+        assert period_range('quarter', date(2026, 9, 6)) == (date(2026, 7, 1), date(2026, 9, 30))
+        assert period_range('quarter', date(2026, 11, 1)) == (date(2026, 10, 1), date(2026, 12, 31))
+        assert period_range('quarter', date(2026, 1, 1)) == (date(2026, 1, 1), date(2026, 3, 31))
+
+    def test_year(self):
+        from apps.reports.services import period_range
+        assert period_range('year', date(2026, 9, 6)) == (date(2026, 1, 1), date(2026, 12, 31))
+
+
+@pytest.mark.django_db
+class TestCollectedTotals:
+
+    def _pay(self, resident, user, amount, when):
+        Payment.objects.create(
+            resident=resident, amount=Decimal(amount), payment_date=when,
+            payment_method='cash', status=Payment.Status.COMPLETED, recorded_by=user,
+        )
+
+    def test_summary_has_quarter_and_year(self, resident, user):
+        today = date.today()
+        self._pay(resident, user, '100000', today)
+        result = ReportService.summary()
+        assert result['collected_this_month'] == Decimal('100000')
+        assert result['collected_this_quarter'] == Decimal('100000')
+        assert result['collected_this_year'] == Decimal('100000')
+
+    def test_payments_report_period_filter(self, resident, user):
+        today = date.today()
+        self._pay(resident, user, '50000', today)
+        self._pay(resident, user, '70000', date(today.year - 1, 6, 1))
+        result = ReportService.payments_report(period='year')
+        assert result['count'] == 1
+        assert result['total'] == Decimal('50000')
+        assert result['period'] == 'year'
+        assert result['by_method'][0]['payment_method'] == 'cash'

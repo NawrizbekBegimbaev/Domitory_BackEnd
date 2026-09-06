@@ -7,6 +7,17 @@ from apps.inventory.models import Building, Floor, Room
 from apps.residents.models import Resident
 from apps.occupancy.models import AccommodationContract
 from apps.billing.models import TariffPlan
+from apps.universities.models import University
+
+
+@pytest.fixture
+def university(db):
+    return University.objects.create(name='Test University', short_name='TU')
+
+
+@pytest.fixture
+def other_university(db):
+    return University.objects.create(name='Other University', short_name='OU')
 
 
 @pytest.fixture
@@ -25,28 +36,31 @@ def role_accountant(db):
 
 
 @pytest.fixture
-def user(db, role_admin):
+def user(db, role_admin, university):
     return User.objects.create_user(
         email='admin@test.com',
         password='testpass123',
         full_name='Test Admin',
         role=role_admin,
+        university=university,
     )
 
 
 @pytest.fixture
-def manager_user(db, role_manager):
+def manager_user(db, role_manager, university):
     return User.objects.create_user(
         email='manager@test.com',
         password='testpass123',
         full_name='Test Manager',
         role=role_manager,
+        university=university,
     )
 
 
 @pytest.fixture
-def building(db):
+def building(db, university):
     return Building.objects.create(
+        university=university,
         name='Building A',
         gender_policy='mixed',
     )
@@ -82,22 +96,24 @@ def room_male_only(db, floor):
 
 
 @pytest.fixture
-def resident(db):
+def resident(db, university):
     return Resident.objects.create(
+        university=university,
         full_name='John Doe',
         gender='male',
-        university_id='STU001',
+        student_number='STU001',
         faculty='CS',
         course=2,
     )
 
 
 @pytest.fixture
-def female_resident(db):
+def female_resident(db, university):
     return Resident.objects.create(
+        university=university,
         full_name='Jane Doe',
         gender='female',
-        university_id='STU002',
+        student_number='STU002',
         faculty='CS',
         course=2,
     )

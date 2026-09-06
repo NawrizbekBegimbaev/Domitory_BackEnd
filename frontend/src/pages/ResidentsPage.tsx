@@ -7,10 +7,14 @@ import DataTable from '../components/DataTable'
 import Pagination from '../components/Pagination'
 import { statusColors, getInitials, getStatusLabel } from '../utils/format'
 import { useTranslation } from '../i18n'
+import { useCurrentUser, isReadOnly, isGlobalRole, getScopeUniversity } from '../hooks/useCurrentUser'
 
 export default function ResidentsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const currentUser = useCurrentUser()
+  const readOnly = isReadOnly(currentUser)
+  const showUniversity = isGlobalRole(currentUser) && !getScopeUniversity()
   const [data, setData] = useState<PaginatedResponse<Resident>>({ count: 0, next: null, previous: null, results: [] })
   const [tab, setTab] = useState('')
   const [search, setSearch] = useState('')
@@ -53,6 +57,7 @@ export default function ResidentsPage() {
         </div>
       ),
     },
+    ...(showUniversity ? [{ key: 'university', label: t('university'), render: (r: Resident) => <span className="text-text-secondary">{r.university_name || '—'}</span> }] : []),
     { key: 'faculty', label: t('faculty'), render: (r: Resident) => <span className="text-text-secondary">{r.faculty || '—'}</span> },
     {
       key: 'status',
@@ -79,12 +84,14 @@ export default function ResidentsPage() {
           <h1 className="text-2xl font-bold">{t('residentsTitle')}</h1>
           <p className="text-text-muted text-sm">{data.count} {t('residentsInSystem')}</p>
         </div>
-        <button
-          onClick={() => navigate('/residents/new')}
-          className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} /> {t('addResident')}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => navigate('/residents/new')}
+            className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+          >
+            <Plus size={16} /> {t('addResident')}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-4 mb-4">

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/countries.dart';
 
 class EditResidentScreen extends StatefulWidget {
   final Map<String, dynamic> resident;
@@ -26,6 +27,7 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
   late String _status;
   DateTime? _birthDate;
   String? _faculty;
+  String _citizenship = homeCountry;
   List<dynamic> _faculties = [];
 
   static const _genders = {'male': 'Мужской', 'female': 'Женский'};
@@ -46,6 +48,7 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
     _universityIdCtrl = TextEditingController(text: r['university_id'] ?? '');
     _notesCtrl = TextEditingController(text: r['notes'] ?? '');
     _faculty = r['faculty'] ?? '';
+    _citizenship = (r['citizenship'] ?? homeCountry).toString().toUpperCase();
     _course = r['course'] ?? 1;
     _gender = r['gender'] ?? 'male';
     _status = r['status'] ?? 'active';
@@ -120,6 +123,7 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
         'university_id': _universityIdCtrl.text.trim(),
         'faculty': _faculty != null && _faculty!.isNotEmpty ? _faculty : null,
         'course': _course,
+        'citizenship': _citizenship,
         'status': _status,
         'notes': _notesCtrl.text.trim().isNotEmpty ? _notesCtrl.text.trim() : null,
       };
@@ -280,6 +284,20 @@ class _EditResidentScreenState extends State<EditResidentScreen> {
                     style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
                     onChanged: (v) => _faculty = v,
                   ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+              child: DropdownButtonFormField<String>(
+                value: countries.containsKey(_citizenship) ? _citizenship : 'XX',
+                decoration: const InputDecoration(labelText: 'Гражданство', border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none, contentPadding: EdgeInsets.zero),
+                dropdownColor: AppColors.card,
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted, size: 20),
+                items: countries.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                onChanged: (v) => setState(() => _citizenship = v ?? homeCountry),
+              ),
+            ),
             const SizedBox(height: 12),
             const Text('Курс', style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),

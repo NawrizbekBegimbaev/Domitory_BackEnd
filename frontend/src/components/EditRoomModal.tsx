@@ -4,6 +4,7 @@ import { roomsApi, assignmentsApi, residentsApi, contractsApi, buildingsApi } fr
 import type { Room, RoomAssignment, Resident, PaginatedResponse } from '../types'
 import { getInitials } from '../utils/format'
 import { useTranslation } from '../i18n'
+import EligibilityHint, { askOverride } from './EligibilityHint'
 import TransferResidentModal from './TransferResidentModal'
 
 interface Props {
@@ -167,6 +168,7 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                       </div>
                     )}
 
+                    {selectedResident && <div className="mb-3"><EligibilityHint residentId={selectedResident.id} roomId={room.id} /></div>}
                     {selectedResident && (
                       <div className="mb-3">
                         <label className="block text-xs text-text-muted mb-2">{t('durationLabel')}</label>
@@ -196,7 +198,14 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                               start_date: fmtDate(today),
                               end_date: fmtDate(endD),
                             })
-                            await assignmentsApi.create({ contract: contract.data.id, resident: selectedResident.id, room: room.id })
+                            const payload = { contract: contract.data.id, resident: selectedResident.id, room: room.id }
+                            try {
+                              await assignmentsApi.create(payload)
+                            } catch (err: any) {
+                              const reason = askOverride(err, t)
+                              if (!reason) throw err
+                              await assignmentsApi.create({ ...payload, override_reason: reason })
+                            }
                             setActiveSlot(null); setSelectedResident(null); setAssignMonths(0)
                             loadResidents(); onUpdated()
                           } catch (err: any) {
@@ -346,7 +355,13 @@ export default function EditRoomModal({ room, buildingName, onClose, onUpdated, 
                       contractsData.push({ resident: fr.resident!.id, contract: contract.data.id })
                     }
 
-                    await assignmentsApi.fullRoom({ room: room.id, assignments: contractsData })
+                    try {
+                      await assignmentsApi.fullRoom({ room: room.id, assignments: contractsData })
+                    } catch (err: any) {
+                      const reason = askOverride(err, t)
+                      if (!reason) throw err
+                      await assignmentsApi.fullRoom({ room: room.id, assignments: contractsData, override_reason: reason })
+                    }
                     setShowFullRoom(false); setFullRoomResidents([])
                     loadResidents(); onUpdated()
                   } catch (err: any) {

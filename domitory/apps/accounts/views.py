@@ -15,6 +15,7 @@ from apps.accounts.serializers import (
     UserUpdateSerializer,
 )
 from apps.accounts.services import AuthService
+from common.tenancy import GLOBAL_ROLES, is_global_user, scope_queryset
 
 
 class RoleListView(APIView):
@@ -60,7 +61,12 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsUniversityAdmin]
 
     def get_queryset(self):
-        return User.objects.select_related('role').all()
+        qs = User.objects.select_related('role', 'university').all()
+        if is_global_user(self.request.user):
+            uni = self.request.query_params.get('university')
+            return qs.filter(university_id=uni) if uni else qs
+        # university_admin: own university only, and never global accounts
+        return qs.filter(university_id=self.request.user.university_id).exclude(role__name__in=GLOBAL_ROLES)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -69,9 +75,39 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserUpdateSerializer
         return UserReadSerializer
 
+    def _resolve_university(self, data, current=None):
+        """Decide which university a created/updated user belongs to.
+
+        - global roles (platform_admin, ministry): no university; only platform_admin may assign them
+        - platform_admin creating a scoped user: must pass university explicitly
+        - university_admin: always their own university, cannot create global roles
+        """
+        from rest_framework.exceptions import PermissionDenied, ValidationError
+        me = self.request.user
+        role = data.get('role', getattr(current, 'role', None))
+        role_name = role.name if role else None
+        if role_name in GLOBAL_ROLES:
+            if me.role_name != 'platform_admin':
+                raise PermissionDenied('Только суперадмин может назначать роль ' + role_name)
+            return None
+        if me.role_name == 'platform_admin':
+            uni = data.get('university', getattr(current, 'university', None))
+            if uni is None and self.request.query_params.get('university'):
+                from apps.universities.models import University
+                uni = University.objects.filter(pk=self.request.query_params['university']).first()
+            if uni is None:
+                raise ValidationError({'university': 'Укажите университет'})
+            return uni
+        return me.university
+
     def perform_create(self, serializer):
         data = serializer.validated_data.copy()
+        data['university'] = self._resolve_university(data)
         AuthService.create_user(data, created_by=self.request.user)
+
+    def perform_update(self, serializer):
+        university = self._resolve_university(serializer.validated_data, current=serializer.instance)
+        serializer.save(university=university)
 
 
 class VerifyEmailSendView(APIView):

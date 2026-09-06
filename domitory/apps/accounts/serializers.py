@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.accounts.models import User, Role
+from apps.universities.serializers import UniversityShortSerializer
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -11,12 +12,14 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserReadSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
+    university = UniversityShortSerializer(read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'role',
+            'id', 'email', 'full_name', 'role', 'university',
             'phone_number', 'photo', 'is_active',
+            'passport_number', 'position',
             'date_joined',
         ]
 
@@ -28,18 +31,26 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'full_name', 'password',
-            'role', 'phone_number', 'photo',
+            'role', 'university', 'phone_number', 'photo',
+            'passport_number', 'position',
         ]
         read_only_fields = ['id']
+        extra_kwargs = {
+            'university': {'required': False, 'allow_null': True},
+            'passport_number': {'required': False},
+            'position': {'required': False},
+        }
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'full_name', 'role',
+            'full_name', 'role', 'university',
             'phone_number', 'is_active',
+            'passport_number', 'position',
         ]
+        extra_kwargs = {'university': {'required': False, 'allow_null': True}}
 
 
 class LoginSerializer(serializers.Serializer):
@@ -49,10 +60,11 @@ class LoginSerializer(serializers.Serializer):
 
 class MeSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
+    university = UniversityShortSerializer(read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'role',
-            'phone_number', 'date_joined',
+            'id', 'email', 'full_name', 'role', 'university',
+            'phone_number', 'photo', 'position', 'date_joined',
         ]

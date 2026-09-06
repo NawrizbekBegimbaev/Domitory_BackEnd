@@ -11,11 +11,11 @@ def api_client():
 
 
 @pytest.fixture
-def security_user(db):
+def security_user(db, university):
     role = Role.objects.get_or_create(name='security_staff')[0]
     return User.objects.create_user(
         email='security@test.com', password='testpass123',
-        full_name='Security Guard', role=role,
+        full_name='Security Guard', role=role, university=university,
     )
 
 

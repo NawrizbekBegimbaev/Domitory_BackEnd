@@ -104,7 +104,7 @@ export default function ReportsPage() {
                     <td className="py-3 px-4 text-text-muted">{i + 1}</td>
                     <td className="py-3 px-4">
                       <div className="font-medium">{d.full_name}</div>
-                      <div className="text-xs text-text-muted">{d.university_id}</div>
+                      <div className="text-xs text-text-muted">{d.student_id}</div>
                     </td>
                     <td className="py-3 px-4 text-text-secondary">{d.faculty}</td>
                     <td className="py-3 px-4 text-right text-text-secondary">{formatMoney(d.total_charged)}</td>
@@ -242,7 +242,7 @@ export default function ReportsPage() {
                 {residentsReport.slice(0, 50).map((r: any) => (
                   <tr key={r.id} className="border-b border-dark-border/50 hover:bg-dark-hover">
                     <td className="py-3 px-4 font-medium">{r.full_name}</td>
-                    <td className="py-3 px-4 text-text-secondary">{r.university_id}</td>
+                    <td className="py-3 px-4 text-text-secondary">{r.student_id ?? r.university_id}</td>
                     <td className="py-3 px-4 text-text-secondary">{r.faculty}</td>
                     <td className="py-3 px-4 text-center">{r.course || '—'}</td>
                     <td className="py-3 px-4">

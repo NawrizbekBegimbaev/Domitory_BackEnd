@@ -9,6 +9,13 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // platform_admin / ministry: the university chosen in the sidebar scopes reads and,
+  // for platform_admin, is the university new buildings/residents/users are created in.
+  // Scoped users ignore this param on the server, so it is harmless for them.
+  const scope = localStorage.getItem('scope_university')
+  if (scope && !config.url?.startsWith('/universities')) {
+    config.params = { university: scope, ...(config.params || {}) }
+  }
   return config
 })
 

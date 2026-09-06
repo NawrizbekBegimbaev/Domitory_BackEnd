@@ -9,6 +9,7 @@ urlpatterns = [
 
     # API v1
     path('api/v1/', include('apps.accounts.urls')),
+    path('api/v1/', include('apps.universities.urls')),
     path('api/v1/', include('apps.inventory.urls')),
     path('api/v1/', include('apps.residents.urls')),
     path('api/v1/', include('apps.occupancy.urls')),
@@ -16,6 +17,7 @@ urlpatterns = [
     path('api/v1/', include('apps.audit.urls')),
     path('api/v1/', include('apps.reports.urls')),
     path('api/v1/', include('apps.access_control.urls')),
+    path('api/v1/', include('apps.admission.urls')),
 
     # API docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

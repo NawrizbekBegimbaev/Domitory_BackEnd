@@ -22,11 +22,11 @@ class DocumentInline(admin.TabularInline):
 @admin.register(Resident)
 class ResidentAdmin(admin.ModelAdmin):
     list_display = [
-        'full_name', 'university_id', 'gender', 'faculty',
+        'full_name', 'student_number', 'gender', 'faculty',
         'course', 'status', 'phone_number',
     ]
     list_filter = ['status', 'gender', 'faculty']
-    search_fields = ['full_name', 'university_id', 'phone_number']
+    search_fields = ['full_name', 'student_number', 'phone_number']
     inlines = [GuardianInline, DocumentInline]
 
 

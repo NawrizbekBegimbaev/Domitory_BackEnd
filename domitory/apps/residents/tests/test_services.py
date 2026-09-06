@@ -8,11 +8,12 @@ from apps.residents.services import ResidentService
 @pytest.mark.django_db
 class TestCreateResident:
 
-    def test_creates_resident(self, db):
+    def test_creates_resident(self, university):
         resident = ResidentService.create_resident({
+            'university': university,
             'full_name': 'Test Student',
             'gender': 'male',
-            'university_id': 'S100',
+            'student_number': 'S100',
             'faculty': 'Engineering',
             'course': 1,
         })
@@ -20,12 +21,13 @@ class TestCreateResident:
         assert resident.full_name == 'Test Student'
         assert resident.status == Resident.Status.PENDING
 
-    def test_creates_audit_log_when_user_provided(self, user):
+    def test_creates_audit_log_when_user_provided(self, user, university):
         resident = ResidentService.create_resident(
             data={
+                'university': university,
                 'full_name': 'Audited Student',
                 'gender': 'female',
-                'university_id': 'S200',
+                'student_number': 'S200',
             },
             created_by=user,
         )
@@ -33,11 +35,12 @@ class TestCreateResident:
             action='create', model_name='Resident', object_id=str(resident.pk),
         ).exists()
 
-    def test_no_audit_log_without_user(self, db):
+    def test_no_audit_log_without_user(self, university):
         ResidentService.create_resident({
+            'university': university,
             'full_name': 'No Audit',
             'gender': 'male',
-            'university_id': 'S300',
+            'student_number': 'S300',
         })
         assert not AuditLog.objects.filter(model_name='Resident').exists()
 

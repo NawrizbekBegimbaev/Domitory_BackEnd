@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../core/widgets.dart';
+import '../finance/income_screen.dart';
+import 'ministry_overview.dart';
+import 'package:provider/provider.dart';
+import '../../core/auth_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -50,6 +54,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (context.watch<AuthProvider>().roleName == 'ministry') {
+      return const MinistryOverview();
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('DORMITORY'), actions: [
         IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
@@ -74,7 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 12),
             _wideStatCard('Задолженность', '${_formatMoney(_summary?['total_debt'] ?? 0)} UZS', AppColors.accent),
             const SizedBox(height: 12),
-            _wideStatCard('Собрано за месяц', '${_formatMoney(_summary?['collected_this_month'] ?? 0)} UZS', AppColors.success),
+            GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeScreen())),
+              child: _wideStatCard('Собрано за квартал  ›', '${_formatMoney(_summary?['collected_this_quarter'] ?? 0)} UZS', AppColors.success),
+            ),
 
             const SizedBox(height: 24),
             const Text('Занятость корпусов', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),

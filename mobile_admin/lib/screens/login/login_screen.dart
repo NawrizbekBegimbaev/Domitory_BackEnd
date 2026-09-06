@@ -178,8 +178,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               children: [
                 // Brand
                 const Text('EDormitory', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: AppColors.accent, letterSpacing: 0.5)),
-                const SizedBox(height: 2),
-                const Text('by Naurizbek', style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 32),
 
                 // Tabs

@@ -4,14 +4,18 @@ from apps.inventory.models import Building, Floor, Room
 
 
 class BuildingSerializer(serializers.ModelSerializer):
+    university_name = serializers.CharField(source='university.name', read_only=True)
+
     class Meta:
         model = Building
         fields = [
-            'id', 'name', 'address',
+            'id', 'university', 'university_name', 'name', 'address',
             'gender_policy', 'is_active',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+        # scoped users get their own university automatically; platform_admin passes it explicitly
+        extra_kwargs = {'university': {'required': False}}
 
 
 class FloorSerializer(serializers.ModelSerializer):

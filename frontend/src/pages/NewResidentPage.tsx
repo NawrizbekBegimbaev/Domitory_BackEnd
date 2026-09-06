@@ -5,6 +5,7 @@ import { residentsApi, facultiesApi } from '../api/endpoints'
 import api from '../api/client'
 import type { PaginatedResponse } from '../types'
 import { useTranslation } from '../i18n'
+import { countries, HOME_COUNTRY } from '../utils/countries'
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -63,6 +64,7 @@ export default function NewResidentPage() {
   const [universityId, setUniversityId] = useState('')
   const [faculty, setFaculty] = useState('')
   const [course, setCourse] = useState(1)
+  const [citizenship, setCitizenship] = useState(HOME_COUNTRY)
 
   // Document
   const [docType, setDocType] = useState('')
@@ -97,6 +99,7 @@ export default function NewResidentPage() {
       formData.append('university_id', universityId)
       formData.append('faculty', faculty)
       formData.append('course', String(course))
+      formData.append('citizenship', citizenship)
       if (phone.length > 4) formData.append('phone_number', phone)
       if (email) formData.append('email', email)
       if (birthDate) formData.append('birth_date', birthDate)
@@ -237,10 +240,16 @@ export default function NewResidentPage() {
       {/* University */}
       <section className="mb-8">
         <h3 className="font-semibold text-accent mb-4">{t('university')}</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block text-xs text-text-muted uppercase mb-1">{t('studentIdLabel')}</label>
             <input value={universityId} onChange={(e) => setUniversityId(e.target.value)} placeholder="N 000000" className="w-full" />
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted uppercase mb-1">{t('citizenship')}</label>
+            <select value={citizenship} onChange={(e) => setCitizenship(e.target.value)} className="w-full">
+              {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs text-text-muted uppercase mb-1">{t('faculty')}</label>

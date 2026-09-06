@@ -169,7 +169,10 @@ class _CreateContractScreenState extends State<CreateContractScreen> {
       } else {
         final errorBody = jsonDecode(resp.body);
         String errorMsg = '';
-        if (errorBody is Map) {
+        if (errorBody is Map && errorBody['error'] is Map && errorBody['error']['message'] != null) {
+          // {'error': {'code', 'message'}} — service-level errors (admission rules, capacity, gender)
+          errorMsg = errorBody['error']['message'].toString();
+        } else if (errorBody is Map) {
           errorBody.forEach((key, value) {
             if (value is List) errorMsg += '${value.join(', ')}\n';
             else errorMsg += '$value\n';
@@ -221,8 +224,9 @@ class _CreateContractScreenState extends State<CreateContractScreen> {
           Navigator.pop(context, true);
         } else {
           final body = jsonDecode(resp.body);
+          final msg = (body is Map && body['error'] is Map) ? body['error']['message'].toString() : body.toString();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Договор создан, но ошибка назначения: ${body.toString()}'), backgroundColor: AppColors.warning),
+            SnackBar(content: Text('Договор создан, но ошибка назначения: $msg'), backgroundColor: AppColors.warning, duration: const Duration(seconds: 6)),
           );
           Navigator.pop(context, true);
         }

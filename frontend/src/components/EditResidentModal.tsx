@@ -5,6 +5,7 @@ import api from '../api/client'
 import type { Resident, PaginatedResponse } from '../types'
 import { getInitials } from '../utils/format'
 import { useTranslation } from '../i18n'
+import { countries, HOME_COUNTRY } from '../utils/countries'
 
 interface Props {
   resident: Resident
@@ -51,6 +52,7 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
   const [universityId, setUniversityId] = useState(resident.university_id)
   const [faculty, setFaculty] = useState(resident.faculty)
   const [course, setCourse] = useState(resident.course || 1)
+  const [citizenship, setCitizenship] = useState(resident.citizenship || HOME_COUNTRY)
 
   const [phoneDisplay, setPhoneDisplay] = useState(resident.phone_number ? formatPhone(resident.phone_number) : '+998')
   const [email, setEmail] = useState(resident.email || '')
@@ -79,6 +81,7 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
         formData.append('university_id', universityId)
         formData.append('faculty', faculty)
         formData.append('course', String(course))
+        formData.append('citizenship', citizenship)
         formData.append('photo', photo)
         if (birthDate) formData.append('birth_date', birthDate)
         if (phone.length > 4) formData.append('phone_number', phone)
@@ -95,6 +98,7 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
           university_id: universityId,
           faculty,
           course,
+          citizenship,
           phone_number: phone.length > 4 ? phone : '',
           email,
           notes,
@@ -198,6 +202,12 @@ export default function EditResidentModal({ resident, onClose, onUpdated }: Prop
               <select value={faculty} onChange={(e) => setFaculty(e.target.value)} className="w-full">
                 <option value="">{t('selectFaculty')}</option>
                 {faculties.map((f) => <option key={f.id} value={f.name}>{f.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-text-muted uppercase mb-1">{t('citizenship')}</label>
+              <select value={citizenship} onChange={(e) => setCitizenship(e.target.value)} className="w-full">
+                {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
             </div>
             <div>

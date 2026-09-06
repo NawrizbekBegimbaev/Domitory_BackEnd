@@ -13,7 +13,7 @@ class ResidentService:
         if created_by:
             AuditService.log(created_by, 'create', resident, {
                 'full_name': resident.full_name,
-                'university_id': resident.university_id,
+                'university_id': resident.student_number,
             })
         return resident
 

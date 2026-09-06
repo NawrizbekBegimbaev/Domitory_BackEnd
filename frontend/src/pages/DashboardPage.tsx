@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Users, BedDouble, Banknote, TrendingUp } from 'lucide-react'
 import { reportsApi } from '../api/endpoints'
 import type { SummaryReport, OccupancyBuilding, Debtor } from '../types'
@@ -8,6 +9,7 @@ import { useTranslation } from '../i18n'
 
 export default function DashboardPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [summary, setSummary] = useState<SummaryReport | null>(null)
   const [occupancy, setOccupancy] = useState<OccupancyBuilding[]>([])
   const [debtors, setDebtors] = useState<Debtor[]>([])
@@ -53,7 +55,9 @@ export default function DashboardPage() {
         <StatCard
           icon={<TrendingUp size={18} className="text-green-400" />}
           label={t('dashCollected')}
-          value={summary ? `${formatMoney(summary.collected_this_month)} UZS` : '—'}
+          value={summary ? `${formatMoney(summary.collected_this_quarter)} UZS` : '—'}
+          subtitle={t('dashCollectedHint')}
+          onClick={() => navigate('/finance/income')}
         />
       </div>
 

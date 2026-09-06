@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import ru from './ru'
 import uz from './uz'
-import kk from './kk'
+import en from './en'
 
-type Lang = 'ru' | 'uz' | 'kk'
+type Lang = 'ru' | 'uz' | 'en'
 type Translations = typeof ru
 
-const translations: Record<Lang, Translations> = { ru, uz, kk }
+const translations: Record<Lang, Translations> = { ru, uz, en }
 
 interface I18nContextType {
   lang: Lang
@@ -22,7 +22,8 @@ const I18nContext = createContext<I18nContextType>({
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(() => {
-    return (localStorage.getItem('lang') as Lang) || 'ru'
+    const saved = localStorage.getItem('lang')
+    return saved === 'ru' || saved === 'uz' || saved === 'en' ? saved : 'ru'
   })
 
   useEffect(() => {

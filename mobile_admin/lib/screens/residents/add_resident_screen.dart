@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
+import '../../core/countries.dart';
 
 class AddResidentScreen extends StatefulWidget {
   const AddResidentScreen({super.key});
@@ -36,6 +37,7 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
   final _universityIdCtrl = TextEditingController();
   String? _faculty;
   int _course = 1;
+  String _citizenship = homeCountry;
   List<dynamic> _faculties = [];
 
   // Guardian
@@ -149,6 +151,7 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
         'university_id': _universityIdCtrl.text.trim(),
         'faculty': _faculty,
         'course': _course,
+        'citizenship': _citizenship,
       };
 
       final resp = await Api.post('/residents/', body: residentBody);
@@ -382,6 +385,13 @@ class _AddResidentScreenState extends State<AddResidentScreen> {
             _sectionTitle('Университет'),
             const SizedBox(height: 12),
             _textField(_universityIdCtrl, 'Студенческий ID', required: true),
+            const SizedBox(height: 10),
+            _dropdownField(
+              value: _citizenship,
+              items: countries,
+              label: 'Гражданство',
+              onChanged: (v) => setState(() => _citizenship = v ?? homeCountry),
+            ),
             const SizedBox(height: 10),
             _faculties.isNotEmpty
                 ? _dropdownField(

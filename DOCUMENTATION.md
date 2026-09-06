@@ -36,9 +36,9 @@ EDormitory — система учёта университетского общ
 | Веб-панель | React 19, Vite 8, TypeScript, Tailwind v4 | `frontend/` |
 | Мобильное приложение для админов | Flutter 3.41, Provider | `mobile_admin/` |
 
-Языки интерфейса: русский, узбекский, каракалпакский. Backend отдаёт данные на русском (verbose_name, переводы в аудите), переключение языка сделано на стороне веб-клиента.
+Языки интерфейса: русский, узбекский, английский (каракалпакский убран 2026-09-06). Backend отдаёт данные на русском (verbose_name, переводы в аудите), переключение языка сделано на стороне веб-клиента.
 
-Бренд: «EDormitory» с подписью «by Naurizbek». Ранее использовались логотип и название Ajou University, удалены 2026-09-02.
+Бренд: «EDormitory» (без упоминания автора/основателя — убрано 2026-09-06). Ранее использовались логотип и название Ajou University, удалены 2026-09-02.
 
 ---
 
@@ -148,6 +148,8 @@ python manage.py run_telegram_bot
 | Приложение | За что отвечает | Ключевые файлы |
 |-----------|-----------------|----------------|
 | `accounts` | Пользователи, роли, JWT, OTP, Telegram-бот | models, views (11 auth-эндпоинтов), telegram.py, management/commands |
+| `universities` | Университеты (тенанты). Каждый корпус, жилец, факультет и сотрудник привязан к университету | UniversityViewSet, `common/tenancy.py` |
+| `admission` | Правила заселения: кампании, окна доступа, ограничения по местам, очередь корпусов/этажей, брони | EligibilityService, AdmissionGuard, BookingService |
 | `inventory` | Корпуса, этажи, комнаты | RoomService: occupancy, gender policy |
 | `residents` | Жильцы, опекуны, документы, факультеты | ResidentViewSet с действиями balance/transfer/withdraw |
 | `occupancy` | Договоры, назначения комнат, история проживания | ContractService, RoomAssignmentService (самая сложная логика) |
@@ -158,7 +160,9 @@ python manage.py run_telegram_bot
 | `organizations` | Не используется | оставлено для миграций |
 | `notifications`, `payments` | Пустые заглушки | только `__init__.py` |
 
-`common/`: миксин `TimestampMixin` (created_at, updated_at), пагинация, обработчик ошибок, `RoleBasedPermission`, валидатор телефона `^\+?\d{10,15}$`.
+`common/`: миксин `TimestampMixin` (created_at, updated_at), пагинация, обработчик ошибок, `RoleBasedPermission` (роль `ministry` блокируется на любых не-SAFE методах), валидатор телефона `^\+?\d{10,15}$`, `tenancy.py` — изоляция данных по университету.
+
+**Мульти-университет (`common/tenancy.py`).** `scope_queryset(qs, request, lookup)` фильтрует по `request.user.university`; `platform_admin` и `ministry` — глобальные роли без университета, видят всё и могут сузить выборку `?university=<id>`. Каждый viewset задаёт `university_lookup` (например `resident__university`). При создании корпуса/жильца/факультета/сотрудника университет подставляется из пользователя (`university_for_create`), platform_admin обязан передать его явно. Сервисы дополнительно проверяют, что жилец и комната из одного университета.
 
 ### 3.3. Legacy-код, который нужно удалить
 
@@ -197,19 +201,33 @@ TariffPlan                 (модель есть, в логике не испо
 
 ### 4.2. Справочник моделей
 
-**accounts.User** (AbstractUser без username): `email` unique, `full_name`, `role` FK, `phone_number` unique nullable, `photo`, `telegram_id` unique nullable. Пустой телефон сохраняется как NULL.
+**universities.University**: `name` unique, `short_name`, `city`, `address`, `contact_email`, `contact_phone`, `is_active`. Тенант: к нему привязаны Building, Resident, Faculty, User. Миграция `universities.0002` создала университет «Университет» и привязала к нему все существующие данные — переименуйте его на странице «Университеты».
 
-**accounts.Role**: `name` из списка platform_admin, university_admin, dorm_manager, accountant, security_staff.
+**accounts.User** (AbstractUser без username): `email` unique, `full_name`, `role` FK, `university` FK nullable (NULL у platform_admin и ministry), `phone_number` unique nullable, `photo`, `telegram_id` unique nullable, `passport_number`, `position` (должность; карточка сотрудника министерства / администратора вуза). Пустой телефон сохраняется как NULL.
 
-**inventory.Building**: `name`, `address`, `gender_policy` (male_only / female_only / mixed), `is_active`.
+Порядок подключения организаций: platform_admin создаёт сотрудников Министерства (роль ministry, без университета) и администраторов университетов (роль university_admin; в форме можно выбрать существующий университет или ввести название нового — он создастся автоматически). Остальных сотрудников вуза (комендант, бухгалтер, охрана, ещё один администратор) добавляет администратор университета сам. На бэкенде platform_admin не ограничен в ролях, ограничение только в форме `AddUserModal`.
+
+**accounts.Role**: `name` из списка platform_admin, university_admin, dorm_manager, accountant, security_staff, ministry.
+
+**inventory.Building**: `university` FK, `name`, `address`, `gender_policy` (male_only / female_only / mixed), `is_active`.
 
 **inventory.Floor**: `building`, `number` (уникален в корпусе), `description`.
 
 **inventory.Room**: `floor`, `room_number` (уникален на этаже), `capacity` (кроватей, по умолчанию 4), `current_occupancy` (занятых кроватей, считается сервисами), `gender_policy`, `status` (available / full / maintenance / closed), `monthly_price` (цена за ОДНУ кровать в месяц), `description`. Свойства `available_beds`, `is_full`.
 
-**residents.Resident**: `full_name`, `birth_date`, `gender` (male / female, обязателен), `phone_number`, `email`, `university_id` (студбилет, обязателен, не уникален), `faculty` (строка, не FK), `course`, `photo`, `status` (pending / active / evicted / graduated / suspended), `notes`.
+**residents.Resident**: `university` FK, `full_name`, `birth_date`, `gender` (male / female, обязателен), `phone_number`, `email`, `student_number` (студбилет, обязателен, не уникален; **в API называется `university_id`** — имя в БД переименовано, потому что оно занято FK), `faculty` (строка, не FK), `course`, `citizenship` (ISO 3166-1 alpha-2, по умолчанию UZ; свойство `is_foreign` = не UZ), `photo`, `status` (pending / active / evicted / graduated / suspended), `notes`.
 
-**residents.Faculty**: справочник названий, `name` unique. С Resident связан только текстом.
+**residents.Faculty**: справочник названий, `university` FK, `name` уникален в пределах университета. С Resident связан только текстом.
+
+**admission.AdmissionCampaign**: `university`, `name`, `academic_year` (уникален в универе), `start_date`, `end_date` (период проживания для договоров из брони), `is_active` (активна одна), `enforce` (проверять правила при заселении админом), `buildings_sequential`, `floors_sequential`, `hold_hours` (срок брони).
+
+**admission.BookingWindow**: `campaign`, `name`, `opens_at`, `closes_at` nullable, критерии `courses` (JSON список), `faculties` (JSON список названий), `foreign_policy` (any / only_foreign / only_local). Пустой список = без ограничения по оси.
+
+**admission.PlacementRule**: `campaign`, ровно одно из `building` / `floor` / `room`, те же критерии, `note`. Несколько правил на одном объекте — «или»; правила корпуса, этажа и комнаты действуют вместе («и»).
+
+**admission.BuildingOrder**: `campaign`, `building` (уникально в кампании), `priority` (1 заполняется первым), `floor_direction` (asc / desc / custom), `floor_order` (JSON список номеров этажей для custom).
+
+**admission.Booking**: `campaign`, `resident`, `room`, `beds`, `status` (reserved / confirmed / expired / cancelled), `expires_at`, `created_by`, `assignment` OneToOne nullable, `override_reason`, `note`. Активная бронь удерживает место: `free_beds = capacity − current_occupancy − reserved`.
 
 **residents.Guardian**: `resident`, `full_name`, `relationship` (father / mother / sibling / uncle / aunt / other), `phone_number`, `is_emergency_contact`.
 
@@ -257,15 +275,20 @@ Charge: `pending` → `partially_paid` → `paid` через FIFO. `cancelled` �
 | IsUniversityAdmin | + university_admin |
 | IsDormManager | + dorm_manager |
 | IsAccountant | platform_admin, university_admin, accountant |
-| IsSecurityStaff | все пять ролей (фактически «любой авторизованный с ролью») |
+| IsSecurityStaff | все роли, включая ministry (для чтения) |
+| IsAccountantOrMinistry | accountant-группа + ministry (чтение начислений и платежей) |
 
-Пользователь без роли не проходит ни одну проверку.
+Пользователь без роли не проходит ни одну проверку. Роль **ministry** (Министерство) — только чтение: `RoleBasedPermission` отклоняет любой не-SAFE запрос независимо от view. Она глобальная (без университета): видит все университеты, `GET /reports/universities/` даёт сводку по каждому вузу и итоги; `?university=<id>` сужает любой отчёт или список.
 
 Матрица по эндпоинтам:
 
 | Ресурс | Чтение | Запись |
 |--------|--------|--------|
-| users, roles | university_admin+ (roles: любой) | university_admin+ |
+| users, roles | university_admin+ (roles: любой) | university_admin+ (university_admin — только свой универ и не глобальные роли; platform_admin передаёт `university`) |
+| universities | любой (свой универ; глобальные роли — все) | platform_admin |
+| admission/campaigns, windows, rules, building-order | все роли | university_admin+ |
+| admission/bookings | все роли | dorm_manager+ |
+| reports/universities | ministry, platform_admin | — |
 | buildings, floors | dorm_manager+ | dorm_manager+ |
 | rooms, residents, faculties, contracts, assignments, stay-records | все роли | dorm_manager+ |
 | guardians, documents (отдельные viewsets) | dorm_manager+ | dorm_manager+ |
@@ -438,7 +461,8 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 | POST auth/verify-email/, /confirm/ | OTP на email при создании сотрудника |
 | POST auth/verify-phone/, /confirm/ | OTP в Telegram при создании сотрудника |
 | GET roles/ | список ролей |
-| GET/POST users/, GET/PATCH/PUT/DELETE users/{id}/ | CRUD сотрудников. Создание: email, full_name, password (мин. 8), role, phone_number, photo. Обновление: full_name, role, phone_number, is_active |
+| GET/POST users/, GET/PATCH/PUT/DELETE users/{id}/ | CRUD сотрудников. Создание: email, full_name, password (мин. 8), role, university (только platform_admin; для ministry не нужен), phone_number, photo. Обновление: full_name, role, university, phone_number, is_active. `auth/me/` отдаёт `university {id, name, short_name}` |
+| GET/POST universities/, GET/PATCH/DELETE universities/{id}/ | университеты; запись только platform_admin |
 
 ### 8.2. Инфраструктура
 
@@ -472,10 +496,31 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 | contracts/ | фильтры status, resident, building; search по номеру и ФИО |
 | contracts/{id}/terminate/ | расторжение |
 | assignments/ | фильтры status, resident, room, building |
-| POST assignments/ | заселение, тело {contract, resident, room, beds_purchased?} |
-| POST assignments/full-room/ | тело {room, assignments: [{resident, contract}, …]} |
+| POST assignments/ | заселение, тело {contract, resident, room, beds_purchased?, override_reason?}. При активной кампании проверяются правила заселения; 400 с текстом «Заселение запрещено правилами: …». university_admin+ может повторить с `override_reason` — обход пишется в аудит (`admission_override`) |
+| POST assignments/full-room/ | тело {room, assignments: [{resident, contract}, …], override_reason?} |
 | assignments/{id}/close/ | выселение |
-| assignments/{id}/transfer/ | перевод, тело {new_room} |
+| assignments/{id}/transfer/ | перевод, тело {new_room, override_reason?}; окна доступа при переводе не проверяются, ограничения и очередь — проверяются |
+
+### 8.4a. Правила заселения (`admission/`)
+
+| Путь | Назначение |
+|------|-----------|
+| campaigns/ | CRUD кампаний своего университета; `POST {id}/activate/` делает активной (остальные деактивируются); `GET active/` |
+| windows/?campaign= | окна доступа: {campaign, name, opens_at, closes_at?, courses[], faculties[], foreign_policy} |
+| rules/?campaign= | ограничения: {campaign, building | floor | room, courses[], faculties[], foreign_policy, note} |
+| building-order/?campaign= | очередь: {campaign, building, priority, floor_direction, floor_order[]} |
+| bookings/ | список броней (фильтры status, resident, room, campaign); `POST {resident, room, beds?, override_reason?}` — бронь на `hold_hours`; `POST {id}/confirm/ {contract?}` — создаёт договор на период кампании (если не передан) и заселяет; `POST {id}/cancel/` |
+| eligibility/?resident=&room=[&skip_window=1] | `{ok, reasons[], codes[], enforced, can_override}` |
+| eligible-rooms/?resident=[&include_blocked=1] | комнаты, куда жильца можно заселить сейчас |
+| status/ | активная кампания + открытые и предстоящие окна (основа студенческого приложения; глобальным ролям нужен `?university=`) |
+
+Алгоритм `EligibilityService.check(resident, room)` (все пункты собираются в список причин):
+1. нет активной кампании → разрешено всё (старое поведение);
+2. комната `available` и есть свободные места с учётом активных броней (своя бронь не мешает);
+3. гендерная политика корпуса и комнаты;
+4. ограничения: для каждого уровня (корпус, этаж, комната), где есть правила, хотя бы одно должно подходить студенту;
+5. окна доступа: хотя бы одно открытое окно подходит студенту; нет окон — открыто всем; в причине указывается ближайшее открытие;
+6. очередь: при `buildings_sequential` корпус закрыт, если в корпусе с меньшим `priority` есть комната, **куда этот студент имеет право** (пп. 2–4); при `floors_sequential` то же для этажей в порядке `floor_direction`. Корпуса вне очереди заполняются свободно. Такой критерий не даёт этажу «только для Архитектуры» блокировать всех остальных.
 | stay-records/ | история, только чтение |
 
 ### 8.5. Финансы
@@ -488,7 +533,7 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 
 ### 8.6. Отчёты, аудит, доступ
 
-`reports/summary/`, `reports/occupancy/?building=`, `reports/available-rooms/?building=&gender=`, `reports/debtors/`, `reports/payments/?date_from=&date_to=&method=`, `reports/residents/?status=&faculty=&gender=`.
+`reports/summary/` (total_residents, free_beds, total_capacity, total_occupancy, total_debt, collected_this_month / _quarter / _year), `reports/universities/` (ministry, platform_admin: массив по университетам + `totals`), `reports/occupancy/?building=`, `reports/available-rooms/?building=&gender=`, `reports/debtors/` (поле студбилета — `student_id`), `reports/payments/?date_from=&date_to=&method=&period=month|quarter|year` (period перекрывает даты; ответ содержит date_from, date_to, by_method), `reports/residents/?status=&faculty=&gender=`. Глобальные роли могут передать `?university=`.
 
 `audit/`: фильтры action, model_name, user, date_from, date_to. Ответ содержит `action_display` и `changes_display` с русскими переводами значений.
 
@@ -505,7 +550,10 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 | Маршрут | Страница | Что делает |
 |---------|----------|-----------|
 | /login | LoginPage | вкладки Email и Телефон, OTP, восстановление пароля, переключатель языка |
-| / | DashboardPage | 4 карточки summary, загрузка по корпусам, топ должников |
+| / | DashboardPage (для ministry — UniversitiesPage) | 4 карточки summary («Собрано за квартал» кликабельна → /finance/income), загрузка по корпусам, топ должников |
+| /finance/income | IncomePage | доходы за месяц / квартал / год: итог, разбивка по способу оплаты, список платежей |
+| /universities | UniversitiesPage | сводка по всем университетам (ministry — домашняя страница); platform_admin создаёт и редактирует университеты; клик по строке выбирает университет как «область» |
+| /admission | AdmissionPage | настройки заселения: вкладки Кампания, Окна доступа, Ограничения, Очередь, Брони |
 | /residents | ResidentsPage | список с поиском и фильтром по статусу |
 | /residents/new | NewResidentPage | анкета жильца + опекун + документ за один проход |
 | /residents/:id | ResidentDetailPage | вкладки Финансы, Опекуны, Документы, Проживание; кнопки редактировать, перевести, выселить, удалить, вернуть переплату |
@@ -520,7 +568,9 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 | /audit | AuditPage | журнал с раскрытием изменений и фильтрами |
 | /users | UsersPage | сотрудники, AddUserModal с подтверждением email и телефона |
 
-Видимость пунктов меню по ролям задана в `Sidebar.tsx`: dorm_manager не видит Финансы, Аудит и Пользователей; accountant видит только Главную, Финансы и Отчёты; security_staff видит Главную, Жильцов, Комнаты, Отчёты и Доступ.
+Видимость пунктов меню по ролям задана в `Sidebar.tsx`: dorm_manager не видит Финансы, Аудит и Пользователей; accountant видит только Главную, Финансы и Отчёты; security_staff видит Главную, Жильцов, Комнаты, Отчёты и Доступ; ministry видит Главную (сводку), Жильцов, Корпуса, Комнаты, Финансы, Отчёты без кнопок создания. Для глобальных ролей в сайдбаре есть селектор университета: выбранный id хранится в `localStorage.scope_university` и подставляется axios-интерцептором как `?university=` во все запросы. Пока университет не выбран («Все университеты»), страницы одного университета (Корпуса, Комнаты, Договоры, Заселение, Финансы, Отчёты, Контроль доступа, Аудит) показывают список университетов (`components/UniversityGate.tsx`) — клик по карточке выбирает университет и открывает страницу. Жильцы и Университеты в этом режиме показывают общий список по всем вузам (у жильцов появляется колонка «Университет»).
+
+`hooks/useCurrentUser.tsx` — контекст текущего пользователя (без повторного `/auth/me/`), `isReadOnly`, `isGlobalRole`. `components/EligibilityHint.tsx` показывает вердикт правил заселения при выборе комнаты (NewContractModal, EditRoomModal, TransferResidentModal) и через `askOverride` предлагает администратору ввести причину обхода после отказа сервера. Гражданство жильца — селект из `utils/countries.ts`.
 
 ### 9.2. Ключевые модалки
 
@@ -530,7 +580,7 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 
 ### 9.3. i18n
 
-`src/i18n/ru.ts`, `uz.ts`, `kk.ts`, около 400 ключей. Хук `useTranslation()` даёт `t(key)`, `lang`, `setLang`. Выбор хранится в localStorage под ключом `lang`. Отсутствующий ключ падает на русский.
+`src/i18n/ru.ts`, `uz.ts`, `en.ts`, около 540 ключей (`en.ts` типизирован как `typeof ru`, поэтому пропущенный ключ — ошибка компиляции). Хук `useTranslation()` даёт `t(key)`, `lang`, `setLang`. Выбор хранится в localStorage под ключом `lang`. Отсутствующий ключ падает на русский.
 
 ### 9.4. Сборка
 
@@ -549,9 +599,9 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 | Экран | Функции |
 |-------|---------|
 | login | email/пароль, телефон/OTP, сброс пароля |
-| dashboard | summary, загрузка, должники |
+| dashboard | summary, загрузка, должники; «Собрано за квартал» → income_screen (месяц / квартал / год); для роли ministry — ministry_overview (сводка по университетам) |
 | residents, resident_detail | список, деталь с балансом, начислениями, платежами, договорами; заселение, перевод, выселение, возврат, удаление |
-| add_resident, edit_resident | анкета, факультет из справочника, опекун |
+| add_resident, edit_resident | анкета, факультет из справочника, гражданство (`core/countries.dart`), опекун |
 | rooms, full_room | комнаты по корпусу и этажу, покупка всей комнаты |
 | buildings, floors | CRUD корпусов, этажей, комнат |
 | contracts, create_contract | список, расторжение, создание с назначением комнаты |
@@ -586,7 +636,7 @@ Cron `auto_evict_expired` каждую ночь находит active-догов
 
 | Набор | Где | Сколько | Как запускать |
 |-------|-----|---------|---------------|
-| Unit backend | `domitory/apps/*/tests/` | 132 | `cd domitory && pytest` (SQLite in-memory) |
+| Unit backend | `domitory/apps/*/tests/` | 203 | `cd domitory && py -3.13 -m pytest` (SQLite in-memory) |
 | API QA | `qa/test_api.py` | 72 | `TEST_ENV=prod QA_ADMIN_EMAIL=… QA_ADMIN_PASSWORD=… py -3.13 -m pytest qa/test_api.py` |
 | E2E Playwright | `qa/test_e2e.py` | 50 | `TEST_ENV=prod py -3.13 -m pytest qa/test_e2e.py --headed` |
 
@@ -653,8 +703,12 @@ bash deploy/oracle/deploy.sh oracle
 9. **Дата перевода и причина** в TransferResidentModal не отправляются на сервер, перевод всегда сегодняшним днём.
 10. **AccessEvent без источника.** Модель и API есть, страница есть, но события никто не создаёт: интеграции с турникетом или картами нет.
 11. **ip_address в аудите** всегда пустой: `AuditService.get_client_ip` есть, но не вызывается.
-12. **Faculty не связан с Resident** по FK, только текстом. Переименование факультета не обновит жильцов.
-13. **Отрицательные платежи** (возвраты) попадают в отчёт по платежам и в «собрано за месяц» со знаком минус. Возможно, так и задумано, но стоит показывать их отдельно.
+12. **Faculty не связан с Resident** по FK, только текстом. Переименование факультета не обновит жильцов; правила заселения (`PlacementRule.faculties`) тоже хранят названия.
+18. **Мобильное приложение и правила заселения.** Настройка кампаний, окон и очереди есть только в вебе; в мобилке при заселении показывается текст отказа, обхода правил нет. Селектора университета для глобальных ролей в мобилке нет (ministry видит сводку на главной).
+19. **Истечение броней** делается лениво (`BookingService.expire_stale()` при чтении списка/проверке), cron не нужен, но статус в БД может отставать до первого запроса.
+20. **Университет по умолчанию** после миграции называется «Университет» — переименовать на странице «Университеты» (platform_admin).
+13. **Долг считается по наступившим периодам.** С 2026-09-06 «Задолженность» на главной и отчёт «Должники» учитывают только неоплаченные начисления за текущий и прошлые месяцы; будущие месяцы договора начислены, но долгом не считаются. Баланс жильца (`residents/{id}/balance/`) по-прежнему показывает всю сумму по договору.
+13a. **Отрицательные платежи** (возвраты) попадают в отчёт по платежам и в «собрано за месяц» со знаком минус. Возможно, так и задумано, но стоит показывать их отдельно.
 14. **Frontend types** содержат поле `organization`, которого backend давно не отдаёт.
 15. **Пустые приложения** `notifications` и `payments` без моделей.
 16. **`Discount` и `TariffPlan`** есть в моделях и миграциях, но нигде не используются: ни в API, ни в расчётах.
@@ -670,7 +724,9 @@ bash deploy/oracle/deploy.sh oracle
 |------|-----------|--------|
 | 1 | Веб-платформа для администрации | готово, в проде |
 | 1.5 | Мобильное приложение для админов | готово, требует пересборки после ребрендинга |
-| 2 | Приложение для студентов: роль student, личный кабинет, баланс, бронирование, уведомления | не начат, модели `notifications` и `payments` созданы пустыми |
+| 1.7 | Мульти-университет + роль ministry | готово 2026-09-06 |
+| 1.8 | Движок правил заселения (окна, ограничения, очередь, брони), веб-настройки, проверка при заселении | готово 2026-09-06; студенческое самобронирование — этап 2 на этих же эндпоинтах (`admission/status/`, `eligible-rooms/`, `bookings/`) |
+| 2 | Приложение для студентов: роль student, привязка User↔Resident, личный кабинет, баланс, бронирование, уведомления | не начат, модели `notifications` и `payments` созданы пустыми |
 | 3 | Онлайн-оплата Payme / Click, поле `Payment.external_reference` под webhook | не начат |
 
 Ближайшие практические шаги, которые напрашиваются из кода: закоммитить текущее состояние, удалить legacy, решить вопрос с правами коменданта на финансы, добавить cron для overdue, настроить бэкапы.

@@ -4,7 +4,7 @@
 
 ## Описание проекта
 
-**EDormitory** (бренд «EDormitory by Naurizbek») — коммерческая платформа управления университетским общежитием.
+**EDormitory** — коммерческая платформа управления университетским общежитием.
 Заменяет бумажный учёт (тетради, Excel) и автоматизирует работу администрации.
 
 ### Этапы развития
@@ -13,7 +13,9 @@
 |------|------|--------|
 | **1** | Административная веб-платформа | ГОТОВО |
 | **1.5** | Мобильное приложение для админов (Flutter) | ГОТОВО |
-| **2** | Мобильное приложение для студентов | Не начат |
+| **1.7** | Мульти-университет + роль Министерства (read-only, сводка по всем вузам) | ГОТОВО (2026-09-06) |
+| **1.8** | Движок правил заселения: окна доступа, ограничения по местам, очередь корпусов/этажей, брони | ГОТОВО, бэкенд + веб (2026-09-06) |
+| **2** | Мобильное приложение для студентов (самобронирование на движке 1.8) | Не начат |
 | **3** | Онлайн-оплата (Payme / Click) | Не начат |
 
 ---
@@ -100,7 +102,7 @@ SECURE_SSL_REDIRECT=False
 | Frontend | React 19, Vite, TypeScript, Tailwind CSS v4 |
 | Мобильное приложение | Flutter 3.41+, Dart 3.11+, Provider |
 | Тесты | pytest, pytest-django, factory-boy, Playwright |
-| i18n | Русский, Узбекский, Каракалпакский |
+| i18n | Русский, Узбекский, Английский |
 
 ---
 
@@ -112,6 +114,8 @@ Domitory_BackEnd/
 │   ├── config/settings/         # base.py, local.py, production.py, test.py
 │   ├── apps/
 │   │   ├── accounts/            # Пользователи, роли, JWT, Telegram OTP, password reset
+│   │   ├── universities/        # Университеты (тенанты), сводка для Министерства
+│   │   ├── admission/           # Правила заселения: кампании, окна, ограничения, очередь, брони
 │   │   ├── organizations/       # (kept for migration history, URLs removed)
 │   │   ├── inventory/           # Корпуса, этажи, комнаты
 │   │   ├── residents/           # Жильцы, опекуны, документы, факультеты
@@ -121,15 +125,15 @@ Domitory_BackEnd/
 │   │   ├── audit/               # Аудит-лог
 │   │   └── access_control/      # События входа/выхода (AccessEvent)
 │   ├── domitory/, main/         # LEGACY первой версии (2024, Heroku) — не используется, удалить
-│   ├── common/                  # Миксины, пагинация, ошибки, права, валидаторы
+│   ├── common/                  # Миксины, пагинация, ошибки, права, валидаторы, tenancy (изоляция по универу)
 │   └── requirements/            # base.txt, local.txt, production.txt, test.txt
 │
 ├── frontend/                    # React frontend
 │   └── src/
-│       ├── pages/               # 14 страниц
+│       ├── pages/               # 17 страниц (+ IncomePage, UniversitiesPage, AdmissionPage)
 │       ├── components/          # Модалки, таблицы, формы
 │       ├── api/                 # Axios клиент
-│       └── i18n/                # ru.ts, uz.ts, kk.ts
+│       └── i18n/                # ru.ts, uz.ts, en.ts
 │
 ├── mobile_admin/                # Flutter мобильное приложение
 │   └── lib/
@@ -167,9 +171,19 @@ Domitory_BackEnd/
 - Вся бизнес-логика — в `services.py`
 - Views: принять запрос → вызвать сервис → вернуть ответ
 
-### 2. Single-tenant (Organization удалена)
-- Нет фильтрации по организации
-- Все данные в одном пространстве
+### 2. Multi-university (с 2026-09-06)
+- Модель `universities.University`; FK `university` у Building, Resident, Faculty, User
+- Все viewset'ы фильтруют по университету через `common/tenancy.py` (`UniversityScopedMixin`)
+- `platform_admin` и `ministry` — глобальные роли без университета, видят всё, могут сузить `?university=<id>`
+- `ministry` — только чтение (блокируется в `RoleBasedPermission` для любых не-SAFE методов)
+- Онбординг: platform_admin создаёт только ministry-сотрудников и university_admin (в форме — выбор/создание университета); остальных сотрудников вуза добавляет university_admin. У User есть `passport_number`, `position`
+- Поле студбилета в БД называется `student_number`, в API по-прежнему `university_id`
+
+### 2a. Правила заселения (app `admission`)
+- `AdmissionCampaign` (учебный год, активна одна на универ) → `BookingWindow` (когда кому открыто), `PlacementRule` (корпус/этаж/комната только для …), `BuildingOrder` (очередь корпусов и этажей), `Booking` (бронь с удержанием места)
+- `EligibilityService.check(resident, room)` — единая проверка; `AdmissionGuard` вызывается из `RoomAssignmentService`
+- university_admin+ может обойти правила с `override_reason` (пишется в аудит); комендант — нет
+- Гражданство жильца: `Resident.citizenship` (ISO-2, по умолчанию UZ), `is_foreign` = не UZ
 
 ### 3. Авто-генерация начислений
 - При назначении комнаты автоматически создаются Charge записи
@@ -200,6 +214,7 @@ Domitory_BackEnd/
 | `dorm_manager` | Комендант |
 | `accountant` | Бухгалтер |
 | `security_staff` | Только чтение |
+| `ministry` | Министерство: только чтение, все университеты, `/reports/universities/` |
 
 ---
 
@@ -219,8 +234,22 @@ POST   /auth/password-reset/confirm/
 GET    /auth/roles/
 
 # Users
-GET/POST        /users/
+GET/POST        /users/                    # university_admin — свой универ; platform_admin передаёт university
 GET/PUT/DELETE  /users/{id}/
+
+# Universities
+GET/POST        /universities/             # запись — только platform_admin
+GET/PUT/DELETE  /universities/{id}/
+
+# Admission (правила заселения)
+GET/POST        /admission/campaigns/      # + /{id}/activate/, /active/
+GET/POST        /admission/windows/?campaign=
+GET/POST        /admission/rules/?campaign=
+GET/POST        /admission/building-order/?campaign=
+GET/POST        /admission/bookings/       # POST = бронь; /{id}/confirm/, /{id}/cancel/
+GET             /admission/eligibility/?resident=&room=
+GET             /admission/eligible-rooms/?resident=
+GET             /admission/status/         # активная кампания + открытые окна (для студ. приложения)
 
 # Verify (для создания пользователей)
 POST   /auth/verify-email/send/
@@ -258,6 +287,7 @@ POST            /assignments/full-room/      # покупка всей комн�
 GET/PUT         /assignments/{id}/
 POST            /assignments/{id}/close/     # выселение
 POST            /assignments/{id}/transfer/  # перевод
+# POST /assignments/, /full-room/, /transfer/ принимают override_reason (university_admin+)
 GET             /stay-records/
 
 # Billing
@@ -265,11 +295,12 @@ GET/POST        /charges/
 POST            /charges/generate/
 GET/POST        /payments/
 
-# Reports
+# Reports (глобальные роли могут передать ?university=)
+GET             /reports/universities/     # сводка по всем универам (ministry, platform_admin)
 GET             /reports/occupancy/
 GET             /reports/available-rooms/
 GET             /reports/debtors/
-GET             /reports/payments/
+GET             /reports/payments/         # ?period=month|quarter|year
 GET             /reports/residents/
 GET             /reports/summary/
 
@@ -290,8 +321,8 @@ GET/POST        /documents/
 ## Тесты
 
 ```bash
-# Backend unit тесты (132 теста)
-cd domitory && pytest
+# Backend unit тесты (203 теста)
+cd domitory && py -3.13 -m pytest
 
 # API тесты — локально (72 теста)
 pytest qa/test_api.py -v

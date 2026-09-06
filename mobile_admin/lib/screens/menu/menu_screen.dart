@@ -25,7 +25,10 @@ class MenuScreen extends StatelessWidget {
       'dorm_manager': 'Комендант',
       'accountant': 'Бухгалтер',
       'security_staff': 'Охрана',
+      'ministry': 'Министерство',
     };
+    final uni = user?['university'];
+    final uniName = uni is Map ? (uni['short_name']?.toString().isNotEmpty == true ? uni['short_name'] : uni['name']) : null;
 
     return Scaffold(
       appBar: const BrandAppBar(),
@@ -89,6 +92,8 @@ class MenuScreen extends StatelessWidget {
                     roleLabels[roleName] ?? roleName,
                     style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
+                  if (uniName != null)
+                    Text('$uniName', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 ]),
               ),
             ]),

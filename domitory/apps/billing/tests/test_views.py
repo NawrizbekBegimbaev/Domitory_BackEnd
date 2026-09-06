@@ -14,10 +14,10 @@ def api_client():
 
 
 @pytest.fixture
-def accountant_user(db, role_accountant):
+def accountant_user(db, role_accountant, university):
     return User.objects.create_user(
         email='accountant@test.com', password='testpass123',
-        full_name='Test Accountant', role=role_accountant,
+        full_name='Test Accountant', role=role_accountant, university=university,
     )
 
 

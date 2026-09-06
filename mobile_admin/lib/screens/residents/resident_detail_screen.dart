@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/api.dart';
 import '../../core/widgets.dart';
+import '../../core/countries.dart';
 import '../finance/new_payment_screen.dart';
 import 'edit_resident_screen.dart';
 import '../contracts/create_contract_screen.dart';
@@ -525,6 +526,7 @@ class _ResidentDetailScreenState extends State<ResidentDetailScreen> with Single
                   ]),
                   const SizedBox(height: 6),
                   _infoRow(Icons.badge_outlined, 'ID: ${r['university_id'] ?? '-'}'),
+                  _infoRow(Icons.public_outlined, '${countryName(r['citizenship'])}${r['is_foreign'] == true ? ' · иностранный студент' : ''}'),
                   _infoRow(Icons.school_outlined, '${r['faculty'] ?? '-'} · ${r['course'] ?? '-'} курс'),
                   if ((r['phone_number'] ?? r['phone']) != null) _infoRow(Icons.phone_outlined, r['phone_number'] ?? r['phone']),
                 ])),

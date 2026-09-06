@@ -13,6 +13,10 @@ class GenderPolicy(models.TextChoices):
 
 class Building(TimestampMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    university = models.ForeignKey(
+        'universities.University', on_delete=models.PROTECT,
+        related_name='buildings', verbose_name='Университет',
+    )
     name = models.CharField('Название', max_length=100)
     address = models.TextField('Адрес', blank=True)
     gender_policy = models.CharField(

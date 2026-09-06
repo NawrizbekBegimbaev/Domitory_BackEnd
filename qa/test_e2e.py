@@ -407,12 +407,12 @@ class TestLanguage:
         expect(page.get_by_role('button', name='Kirish', exact=True)).to_be_visible()
         page.get_by_text('RU', exact=True).click()
 
-    def test_qq(self, page: Page):
+    def test_en(self, page: Page):
         page.goto(F + '/login')
         page.wait_for_timeout(300)
-        page.get_by_text('QQ', exact=True).click()
+        page.get_by_text('EN', exact=True).click()
         page.wait_for_timeout(500)
-        expect(page.get_by_role('button', name='Kiriw', exact=True)).to_be_visible()
+        expect(page.get_by_role('button', name='Sign in', exact=True)).to_be_visible()
         page.get_by_text('RU', exact=True).click()
 
     def test_persists(self, page: Page):

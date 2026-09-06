@@ -13,10 +13,7 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       leading: leading,
-      title: const Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('EDormitory', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.5)),
-        Text('by Naurizbek', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w500)),
-      ]),
+      title: const Text('EDormitory', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 17, letterSpacing: 0.5)),
       actions: actions,
     );
   }

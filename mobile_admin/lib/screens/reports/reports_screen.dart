@@ -582,7 +582,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(r['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           const SizedBox(height: 2),
-          Text('#${r['university_id'] ?? ''} · ${r['faculty'] ?? ''} · ${r['course'] ?? '-'} курс', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text('#${r['student_id'] ?? ''} · ${r['faculty'] ?? ''} · ${r['course'] ?? '-'} курс', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         ])),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

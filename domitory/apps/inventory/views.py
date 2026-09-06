@@ -12,37 +12,72 @@ from apps.inventory.serializers import (
     RoomDetailSerializer,
     RoomListSerializer,
 )
+from common.tenancy import UniversityScopedMixin, university_for_create
 
 
-class BuildingViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsDormManager]
+def _assert_same_university(request, obj_university_id):
+    """Scoped users may only attach children to parents of their own university."""
+    from rest_framework.exceptions import PermissionDenied
+    from common.tenancy import is_global_user
+    if is_global_user(request.user):
+        return
+    if obj_university_id != request.user.university_id:
+        raise PermissionDenied('Объект принадлежит другому университету.')
+
+
+class BuildingViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsSecurityStaff]
     serializer_class = BuildingSerializer
     filterset_class = BuildingFilter
     search_fields = ['name', 'address']
     ordering_fields = ['name', 'created_at']
+    university_lookup = 'university'
 
     def get_queryset(self):
-        return Building.objects.all()
+        return self.scope(Building.objects.select_related('university').all())
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsAuthenticated(), IsDormManager()]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        serializer.save(university=university_for_create(self.request, serializer.validated_data.get('university')))
 
 
-class FloorViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsDormManager]
+class FloorViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, IsSecurityStaff]
     serializer_class = FloorSerializer
     filterset_class = FloorFilter
     ordering_fields = ['number']
+    university_lookup = 'building__university'
 
     def get_queryset(self):
-        return Floor.objects.select_related('building').all()
+        return self.scope(Floor.objects.select_related('building').all())
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsAuthenticated(), IsDormManager()]
+        return super().get_permissions()
+
+    def perform_create(self, serializer):
+        _assert_same_university(self.request, serializer.validated_data['building'].university_id)
+        serializer.save()
 
 
-class RoomViewSet(viewsets.ModelViewSet):
+class RoomViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSecurityStaff]
     filterset_class = RoomFilter
     search_fields = ['room_number']
     ordering_fields = ['room_number', 'capacity', 'current_occupancy', 'monthly_price']
+    university_lookup = 'floor__building__university'
 
     def get_queryset(self):
-        return Room.objects.select_related('floor', 'floor__building').all()
+        return self.scope(Room.objects.select_related('floor', 'floor__building').all())
+
+    def perform_create(self, serializer):
+        _assert_same_university(self.request, serializer.validated_data['floor'].building.university_id)
+        serializer.save()
 
     def get_serializer_class(self):
         if self.action == 'list':

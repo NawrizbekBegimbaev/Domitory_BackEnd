@@ -39,6 +39,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.accounts',
+    'apps.universities',
     'apps.organizations',  # kept for migration history
     'apps.inventory',
     'apps.residents',
@@ -47,6 +48,7 @@ LOCAL_APPS = [
     'apps.audit',
     'apps.reports',
     'apps.access_control',
+    'apps.admission',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

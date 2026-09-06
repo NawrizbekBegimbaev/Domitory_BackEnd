@@ -1,3 +1,4 @@
+import type React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import Layout from './components/Layout'
@@ -10,12 +11,18 @@ import RoomsPage from './pages/RoomsPage'
 import ContractsPage from './pages/ContractsPage'
 import FinancePage from './pages/FinancePage'
 import NewPaymentPage from './pages/NewPaymentPage'
+import IncomePage from './pages/IncomePage'
 import ReportsPage from './pages/ReportsPage'
 import AuditPage from './pages/AuditPage'
 import AccessPage from './pages/AccessPage'
 import UsersPage from './pages/UsersPage'
 import BuildingsPage from './pages/BuildingsPage'
 import FloorsPage from './pages/FloorsPage'
+import UniversitiesPage from './pages/UniversitiesPage'
+import AdmissionPage from './pages/AdmissionPage'
+import { CurrentUserProvider } from './hooks/useCurrentUser'
+import UniversityGate from './components/UniversityGate'
+import { useTranslation } from './i18n'
 
 export default function App() {
   const { user, loading, login, logout } = useAuth()
@@ -28,7 +35,13 @@ export default function App() {
     )
   }
 
+  const isMinistry = user?.role?.name === 'ministry'
+  const { t } = useTranslation()
+  // Pages that belong to one university: global roles pick the university first.
+  const gate = (key: Parameters<typeof t>[0], el: React.ReactNode) => <UniversityGate title={t(key)}>{el}</UniversityGate>
+
   return (
+    <CurrentUserProvider user={user}>
     <BrowserRouter>
       <Routes>
         <Route
@@ -37,19 +50,23 @@ export default function App() {
         />
         {user ? (
           <Route element={<Layout user={user} onLogout={logout} />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={isMinistry ? <UniversitiesPage /> : <DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="universities" element={<UniversitiesPage />} />
             <Route path="residents" element={<ResidentsPage />} />
             <Route path="residents/new" element={<NewResidentPage />} />
             <Route path="residents/:id" element={<ResidentDetailPage />} />
-            <Route path="buildings" element={<BuildingsPage />} />
-            <Route path="buildings/:buildingId/floors" element={<FloorsPage />} />
-            <Route path="rooms" element={<RoomsPage />} />
-            <Route path="contracts" element={<ContractsPage />} />
-            <Route path="finance" element={<FinancePage />} />
-            <Route path="finance/payment/new" element={<NewPaymentPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="access" element={<AccessPage />} />
-            <Route path="audit" element={<AuditPage />} />
+            <Route path="buildings" element={gate('navBuildings', <BuildingsPage />)} />
+            <Route path="buildings/:buildingId/floors" element={gate('navBuildings', <FloorsPage />)} />
+            <Route path="rooms" element={gate('navRooms', <RoomsPage />)} />
+            <Route path="contracts" element={gate('navContracts', <ContractsPage />)} />
+            <Route path="admission" element={gate('navAdmission', <AdmissionPage />)} />
+            <Route path="finance" element={gate('navFinance', <FinancePage />)} />
+            <Route path="finance/payment/new" element={gate('navFinance', <NewPaymentPage />)} />
+            <Route path="finance/income" element={gate('navFinance', <IncomePage />)} />
+            <Route path="reports" element={gate('navReports', <ReportsPage />)} />
+            <Route path="access" element={gate('navAccess', <AccessPage />)} />
+            <Route path="audit" element={gate('navAudit', <AuditPage />)} />
             <Route path="users" element={<UsersPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Route>
@@ -58,5 +75,6 @@ export default function App() {
         )}
       </Routes>
     </BrowserRouter>
+    </CurrentUserProvider>
   )
 }

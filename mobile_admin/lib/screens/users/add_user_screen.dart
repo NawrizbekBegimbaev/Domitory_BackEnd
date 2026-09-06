@@ -46,6 +46,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     'dorm_manager': 'Комендант',
     'accountant': 'Бухгалтер',
     'security_staff': 'Охрана',
+    'ministry': 'Министерство',
   };
 
   static const _roleIcons = {

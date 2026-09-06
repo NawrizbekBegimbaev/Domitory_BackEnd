@@ -4,7 +4,9 @@ import type {
   ResidentDocument, Contract, RoomAssignment, StayRecord,
   Charge, Payment, BalanceResponse,
   AuditLog, SummaryReport, OccupancyBuilding, Debtor,
-  AccessEvent, PaginatedResponse,
+  AccessEvent, PaginatedResponse, PaymentsReport,
+  University, UniversitiesOverview,
+  Campaign, BookingWindow, PlacementRule, BuildingOrder, Booking, Eligibility, EligibleRoom,
 } from '../types'
 
 // Auth
@@ -24,6 +26,14 @@ export const authApi = {
   requestPasswordReset: (email: string) => api.post('/auth/password-reset/', { email }),
   confirmPasswordReset: (email: string, code: string, new_password: string) =>
     api.post('/auth/password-reset/confirm/', { email, code, new_password }),
+}
+
+// Universities
+export const universitiesApi = {
+  list: (params?: Record<string, string>) =>
+    api.get<PaginatedResponse<University>>('/universities/', { params: { page_size: '100', ...params } }),
+  create: (data: Record<string, unknown>) => api.post<University>('/universities/', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch<University>(`/universities/${id}/`, data),
 }
 
 // Users
@@ -111,10 +121,10 @@ export const assignmentsApi = {
   list: (params?: Record<string, string>) =>
     api.get<PaginatedResponse<RoomAssignment>>('/assignments/', { params }),
   create: (data: Record<string, unknown>) => api.post<RoomAssignment>('/assignments/', data),
-  fullRoom: (data: { room: string; assignments: { resident: string; contract: string }[] }) =>
+  fullRoom: (data: { room: string; assignments: { resident: string; contract: string }[]; override_reason?: string }) =>
     api.post<RoomAssignment[]>('/assignments/full-room/', data),
   close: (id: string) => api.post(`/assignments/${id}/close/`),
-  transfer: (id: string, data: { new_room: string }) => api.post(`/assignments/${id}/transfer/`, data),
+  transfer: (id: string, data: { new_room: string; override_reason?: string }) => api.post(`/assignments/${id}/transfer/`, data),
 }
 
 // Stay Records
@@ -139,15 +149,52 @@ export const paymentsApi = {
 // Reports
 export const reportsApi = {
   summary: () => api.get<SummaryReport>('/reports/summary/'),
+  universities: () => api.get<UniversitiesOverview>('/reports/universities/'),
   occupancy: (building?: string) =>
     api.get<OccupancyBuilding[]>('/reports/occupancy/', { params: building ? { building } : {} }),
   availableRooms: (params?: Record<string, string>) =>
     api.get<Room[]>('/reports/available-rooms/', { params }),
   debtors: () => api.get<Debtor[]>('/reports/debtors/'),
   payments: (params?: Record<string, string>) =>
-    api.get<{ payments: Payment[]; total: string; count: number }>('/reports/payments/', { params }),
+    api.get<PaymentsReport>('/reports/payments/', { params }),
   residents: (params?: Record<string, string>) =>
     api.get<Resident[]>('/reports/residents/', { params }),
+}
+
+// Admission (booking rules)
+export const admissionApi = {
+  campaigns: {
+    list: () => api.get<PaginatedResponse<Campaign>>('/admission/campaigns/', { params: { page_size: '100' } }),
+    create: (data: Record<string, unknown>) => api.post<Campaign>('/admission/campaigns/', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch<Campaign>(`/admission/campaigns/${id}/`, data),
+    activate: (id: string) => api.post<Campaign>(`/admission/campaigns/${id}/activate/`),
+  },
+  windows: {
+    list: (campaign: string) => api.get<PaginatedResponse<BookingWindow>>('/admission/windows/', { params: { campaign, page_size: '100' } }),
+    create: (data: Record<string, unknown>) => api.post<BookingWindow>('/admission/windows/', data),
+    delete: (id: string) => api.delete(`/admission/windows/${id}/`),
+  },
+  rules: {
+    list: (campaign: string) => api.get<PaginatedResponse<PlacementRule>>('/admission/rules/', { params: { campaign, page_size: '100' } }),
+    create: (data: Record<string, unknown>) => api.post<PlacementRule>('/admission/rules/', data),
+    delete: (id: string) => api.delete(`/admission/rules/${id}/`),
+  },
+  buildingOrder: {
+    list: (campaign: string) => api.get<PaginatedResponse<BuildingOrder>>('/admission/building-order/', { params: { campaign, page_size: '100' } }),
+    create: (data: Record<string, unknown>) => api.post<BuildingOrder>('/admission/building-order/', data),
+    update: (id: string, data: Record<string, unknown>) => api.patch<BuildingOrder>(`/admission/building-order/${id}/`, data),
+    delete: (id: string) => api.delete(`/admission/building-order/${id}/`),
+  },
+  bookings: {
+    list: (params?: Record<string, string>) => api.get<PaginatedResponse<Booking>>('/admission/bookings/', { params }),
+    reserve: (data: { resident: string; room: string; beds?: number; override_reason?: string }) => api.post<Booking>('/admission/bookings/', data),
+    confirm: (id: string, contract?: string) => api.post<Booking>(`/admission/bookings/${id}/confirm/`, contract ? { contract } : {}),
+    cancel: (id: string) => api.post<Booking>(`/admission/bookings/${id}/cancel/`),
+  },
+  eligibility: (resident: string, room: string, skipWindow?: boolean) =>
+    api.get<Eligibility>('/admission/eligibility/', { params: { resident, room, ...(skipWindow ? { skip_window: '1' } : {}) } }),
+  eligibleRooms: (resident: string, includeBlocked?: boolean) =>
+    api.get<EligibleRoom[]>('/admission/eligible-rooms/', { params: { resident, ...(includeBlocked ? { include_blocked: '1' } : {}) } }),
 }
 
 // Audit

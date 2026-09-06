@@ -13,6 +13,7 @@ class Command(BaseCommand):
             ('dorm_manager', 'Manage residents, rooms, assignments'),
             ('accountant', 'Manage tariffs, charges, payments'),
             ('security_staff', 'Read-only access to residents and rooms'),
+            ('ministry', 'Read-only access to statistics of all universities'),
         ]
         created = 0
         for name, description in roles:

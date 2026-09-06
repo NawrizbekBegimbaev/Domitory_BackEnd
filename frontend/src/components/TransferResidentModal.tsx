@@ -4,6 +4,7 @@ import { buildingsApi, floorsApi, roomsApi, assignmentsApi } from '../api/endpoi
 import type { Building, Floor, Room, RoomAssignment, PaginatedResponse } from '../types'
 import { formatDate } from '../utils/format'
 import { useTranslation } from '../i18n'
+import EligibilityHint, { askOverride } from './EligibilityHint'
 
 interface Props {
   residentName: string
@@ -56,11 +57,17 @@ export default function TransferResidentModal({ residentName, currentAssignment,
     if (!currentAssignment || !roomId) return
     setLoading(true)
     try {
-      await assignmentsApi.transfer(currentAssignment.id, { new_room: roomId })
+      try {
+        await assignmentsApi.transfer(currentAssignment.id, { new_room: roomId })
+      } catch (err: any) {
+        const reason = askOverride(err, t)
+        if (!reason) throw err
+        await assignmentsApi.transfer(currentAssignment.id, { new_room: roomId, override_reason: reason })
+      }
       onTransferred()
       onClose()
-    } catch {
-      alert(t('errorTransfer'))
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || t('errorTransfer'))
     } finally {
       setLoading(false)
     }
@@ -115,6 +122,7 @@ export default function TransferResidentModal({ residentName, currentAssignment,
               </div>
             </div>
           )}
+          <EligibilityHint residentId={currentAssignment?.resident} roomId={roomId} skipWindow />
 
           <div>
             <label className="block text-xs text-text-muted uppercase mb-1">{t('transferDate')} *</label>

@@ -124,7 +124,6 @@ export default function LoginPage({ onLogin }: Props) {
         <div className="bg-dark-card border border-dark-border rounded-2xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold tracking-wide text-accent">EDormitory</h1>
-            <p className="text-text-muted text-xs mt-1 font-medium">by Naurizbek</p>
             <p className="text-text-secondary text-sm mt-3">
               {mode === 'login' || mode === 'phone' || mode === 'phoneOtp' ? t('loginTitle') : t('resetPassword')}
             </p>
@@ -133,11 +132,11 @@ export default function LoginPage({ onLogin }: Props) {
           {/* Language switcher */}
           <div className="flex items-center justify-center gap-1 mb-6">
             <Globe size={14} className="text-text-muted" />
-            {(['ru', 'uz', 'kk'] as const).map((l) => (
+            {(['ru', 'uz', 'en'] as const).map((l) => (
               <button key={l} onClick={() => setLang(l)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${lang === l ? 'bg-accent text-white' : 'text-text-muted hover:text-accent'}`}
               >
-                {l === 'ru' ? 'RU' : l === 'uz' ? 'UZ' : 'QQ'}
+                {l === 'ru' ? 'RU' : l === 'uz' ? 'UZ' : 'EN'}
               </button>
             ))}
           </div>

@@ -147,7 +147,12 @@ class RoomAssignmentService:
 
     @staticmethod
     @transaction.atomic
-    def assign_resident_to_room(resident, room, contract, assigned_by, beds_purchased=1):
+    def assign_resident_to_room(resident, room, contract, assigned_by, beds_purchased=1,
+                                override_reason=None, enforce_rules=True):
+        """override_reason: university_admin+ may bypass admission rules with a logged reason.
+        enforce_rules=False: caller already validated (booking confirmation)."""
+        from apps.admission.services import AdmissionGuard
+
         if RoomAssignment.objects.filter(
             resident=resident, status=RoomAssignment.Status.ACTIVE,
         ).exists():
@@ -156,10 +161,16 @@ class RoomAssignmentService:
         if contract.status != AccommodationContract.Status.ACTIVE:
             raise ValidationError('Contract is not active.')
 
+        if room.floor.building.university_id != resident.university_id:
+            raise ValidationError('Комната принадлежит другому университету.')
+
         if room.current_occupancy + beds_purchased > room.capacity:
             raise ValidationError(f'Not enough beds. Available: {room.capacity - room.current_occupancy}, requested: {beds_purchased}')
 
         RoomService.validate_gender_policy(room, resident)
+
+        if enforce_rules:
+            AdmissionGuard.check_or_raise(resident, room, user=assigned_by, override_reason=override_reason, beds=beds_purchased)
 
         assignment = RoomAssignment.objects.create(
             contract=contract,
@@ -199,19 +210,21 @@ class RoomAssignmentService:
             'resident': str(resident),
             'room': str(room.room_number),
             'beds_purchased': beds_purchased,
+            **({'override_reason': override_reason} if override_reason else {}),
         })
 
         return assignment
 
     @staticmethod
     @transaction.atomic
-    def assign_full_room(residents_and_contracts, room, assigned_by):
+    def assign_full_room(residents_and_contracts, room, assigned_by, override_reason=None):
         """Assign entire room to a group of residents. Cost split evenly.
 
         residents_and_contracts: list of (resident, contract) tuples
         Total cost = monthly_price × capacity, split among residents.
         """
         from apps.inventory.models import Room
+        from apps.admission.services import AdmissionGuard
 
         num_residents = len(residents_and_contracts)
         if num_residents == 0:
@@ -238,7 +251,10 @@ class RoomAssignmentService:
                 raise ValidationError(f'{resident.full_name} already has an active assignment.')
             if contract.status != AccommodationContract.Status.ACTIVE:
                 raise ValidationError(f'Contract for {resident.full_name} is not active.')
+            if room.floor.building.university_id != resident.university_id:
+                raise ValidationError('Комната принадлежит другому университету.')
             RoomService.validate_gender_policy(room, resident)
+            AdmissionGuard.check_or_raise(resident, room, user=assigned_by, override_reason=override_reason, beds=1)
 
             # Distribute beds for occupancy tracking
             beds = beds_each + (1 if i < remainder else 0)
@@ -373,7 +389,8 @@ class RoomAssignmentService:
 
     @staticmethod
     @transaction.atomic
-    def transfer_resident(assignment, new_room, user=None):
+    def transfer_resident(assignment, new_room, user=None, override_reason=None):
+        from apps.admission.services import AdmissionGuard
         now = timezone.now()
         today = now.date()
         resident = assignment.resident
@@ -381,8 +398,11 @@ class RoomAssignmentService:
         contract = assignment.contract
         beds_freed = assignment.beds_purchased
 
+        if new_room.floor.building.university_id != resident.university_id:
+            raise ValidationError('Комната принадлежит другому университету.')
         RoomService.validate_capacity(new_room)
         RoomService.validate_gender_policy(new_room, resident)
+        AdmissionGuard.check_or_raise(resident, new_room, user=user, override_reason=override_reason, skip_window=True)
 
         # Close old assignment
         assignment.end_date = today

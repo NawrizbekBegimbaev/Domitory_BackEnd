@@ -12,6 +12,7 @@ class Role(models.Model):
         DORM_MANAGER = 'dorm_manager', 'Комендант'
         ACCOUNTANT = 'accountant', 'Бухгалтер'
         SECURITY_STAFF = 'security_staff', 'Охранник'
+        MINISTRY = 'ministry', 'Министерство'
 
     name = models.CharField('Название', max_length=50, choices=RoleName.choices, unique=True)
     description = models.CharField('Описание', max_length=255, blank=True)
@@ -47,9 +48,16 @@ class User(AbstractUser):
     email = models.EmailField('Email', unique=True)
     full_name = models.CharField('ФИО', max_length=150)
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True, blank=True, related_name='users', verbose_name='Роль')
+    university = models.ForeignKey(
+        'universities.University', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='users', verbose_name='Университет',
+    )
     phone_number = models.CharField('Телефон', max_length=17, blank=True, null=True, unique=True, validators=[phone_validator])
     photo = models.ImageField('Фото', upload_to='users/photos/', blank=True)
     telegram_id = models.BigIntegerField('Telegram ID', null=True, blank=True, unique=True)
+    # Staff card: filled in for ministry employees and university administrators
+    passport_number = models.CharField('Паспорт', max_length=20, blank=True)
+    position = models.CharField('Должность', max_length=150, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']

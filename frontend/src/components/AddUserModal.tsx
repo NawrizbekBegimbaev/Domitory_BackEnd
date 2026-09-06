@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Shield, Users, Wallet, Eye, EyeOff, Camera, Check, Send } from 'lucide-react'
-import { usersApi, authApi } from '../api/endpoints'
+import { X, Shield, Users, Wallet, Eye, EyeOff, Camera, Check, Send, Landmark } from 'lucide-react'
+import { usersApi, authApi, universitiesApi } from '../api/endpoints'
 import api from '../api/client'
 import { useTranslation } from '../i18n'
+import { useCurrentUser } from '../hooks/useCurrentUser'
+import type { University } from '../types'
 
 interface Props {
   onClose: () => void
@@ -19,7 +21,13 @@ const roleConfig = [
   { name: 'dorm_manager', icon: Users },
   { name: 'accountant', icon: Wallet },
   { name: 'security_staff', icon: Eye },
+  { name: 'ministry', icon: Landmark },
 ]
+
+// Super admin onboards organisations: ministry employees and university administrators.
+// Everyone else inside a university is added by that university's administrator.
+const PLATFORM_ADMIN_ROLES = ['ministry', 'university_admin']
+const UNIVERSITY_ADMIN_ROLES = ['university_admin', 'dorm_manager', 'accountant', 'security_staff']
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -37,9 +45,18 @@ function phoneToRaw(f: string) { return '+' + f.replace(/\D/g, '') }
 
 export default function AddUserModal({ onClose, onCreated }: Props) {
   const { t } = useTranslation()
+  const me = useCurrentUser()
+  const isPlatformAdmin = me?.role?.name === 'platform_admin'
   const photoRef = useRef<HTMLInputElement>(null)
   const [roles, setRoles] = useState<RoleData[]>([])
   const [selectedRole, setSelectedRole] = useState<number | null>(null)
+  const [universities, setUniversities] = useState<University[]>([])
+  const [universityId, setUniversityId] = useState('')
+  const [universityMode, setUniversityMode] = useState<'existing' | 'new'>('existing')
+  const [newUniversityName, setNewUniversityName] = useState('')
+  const [newUniversityCity, setNewUniversityCity] = useState('')
+  const [passportNumber, setPassportNumber] = useState('')
+  const [position, setPosition] = useState('')
   const [step, setStep] = useState(1) // 1=email, 2=phone, 3=details
 
   // Step 1 — Email
@@ -73,16 +90,26 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
     dorm_manager: t('roleDormManager'),
     accountant: t('roleAccountant'),
     security_staff: t('roleSecurityStaff'),
+    ministry: t('roleMinistry'),
   }
 
   useEffect(() => {
     api.get('/roles/').then((r) => {
       const allRoles: RoleData[] = r.data
-      const assignable = allRoles.filter(r => roleConfig.some(rc => rc.name === r.name))
+      const allowed = isPlatformAdmin ? PLATFORM_ADMIN_ROLES : UNIVERSITY_ADMIN_ROLES
+      const assignable = allowed.map((name) => allRoles.find((r) => r.name === name)).filter((r): r is RoleData => !!r)
       setRoles(assignable)
       if (assignable.length > 0) setSelectedRole(assignable[0].id)
     }).catch(() => {})
-  }, [])
+    if (isPlatformAdmin) universitiesApi.list().then((r) => {
+      setUniversities(r.data.results)
+      if (r.data.results.length === 0) setUniversityMode('new')
+    }).catch(() => {})
+  }, [isPlatformAdmin])
+
+  const selectedRoleName = roles.find((r) => r.id === selectedRole)?.name
+  const needsUniversity = isPlatformAdmin && selectedRoleName !== 'ministry'
+  const universityReady = !needsUniversity || (universityMode === 'existing' ? !!universityId : !!newUniversityName.trim())
 
   // Send email OTP
   const handleEmailSend = async () => {
@@ -144,16 +171,26 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
   const handleCreate = async () => {
     const fullName = [lastName, firstName, middleName].filter(Boolean).join(' ')
     if (!fullName || !email || password.length < 8 || !selectedRole) return
+    if (!universityReady) { setError(t('universityRequired')); return }
     setLoading(true); setError('')
     try {
       const phone = phoneSkipped ? '' : phoneToRaw(phoneDisplay)
+      // University administrator for a university that does not exist yet: create it first.
+      let uniId = universityId
+      if (needsUniversity && universityMode === 'new') {
+        const created = await universitiesApi.create({ name: newUniversityName.trim(), city: newUniversityCity.trim() })
+        uniId = created.data.id
+      }
       if (photo) {
         const formData = new FormData()
         formData.append('full_name', fullName)
         formData.append('email', email)
         formData.append('password', password)
         formData.append('role', String(selectedRole))
+        if (needsUniversity) formData.append('university', uniId)
         if (phone.length >= 13) formData.append('phone_number', phone)
+        formData.append('passport_number', passportNumber.trim())
+        formData.append('position', position.trim())
         formData.append('photo', photo)
         await api.post('/users/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       } else {
@@ -162,13 +199,17 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
           email,
           password,
           role: selectedRole,
+          passport_number: passportNumber.trim(),
+          position: position.trim(),
+          ...(needsUniversity ? { university: uniId } : {}),
           ...(phone.length >= 13 ? { phone_number: phone } : {}),
         })
       }
       onCreated()
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.error?.message || t('error'))
+      const d = err.response?.data
+      setError(d?.error?.message || d?.name?.[0] || d?.email?.[0] || d?.university?.[0] || t('error'))
     } finally { setLoading(false) }
   }
 
@@ -297,6 +338,18 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
               </div>
             </div>
 
+            {/* Staff card */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-text-muted uppercase mb-1">{t('passportNumber')}</label>
+                <input value={passportNumber} onChange={(e) => setPassportNumber(e.target.value.toUpperCase())} placeholder="AA 1234567" className="w-full" maxLength={20} />
+              </div>
+              <div>
+                <label className="block text-xs text-text-muted uppercase mb-1">{t('position')}</label>
+                <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder={t('positionPlaceholder')} className="w-full" maxLength={150} />
+              </div>
+            </div>
+
             {/* Password */}
             <div>
               <label className="block text-xs text-text-muted uppercase mb-1">{t('password')} * ({t('minChars')})</label>
@@ -312,7 +365,7 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
             {/* Role */}
             <div>
               <label className="block text-xs text-text-muted uppercase mb-2">{t('selectRole')}</label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className={`grid gap-2 ${roles.length <= 2 ? 'grid-cols-2' : 'grid-cols-4'}`}>
                 {roles.map((r) => {
                   const Icon = roleConfig.find(rc => rc.name === r.name)?.icon || Users
                   return (
@@ -326,6 +379,34 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
               </div>
             </div>
 
+            {/* University for a university administrator created by the super admin */}
+            {needsUniversity && (
+              <div className="bg-dark-bg border border-dark-border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-text-muted uppercase">{t('university')} *</label>
+                  <div className="flex gap-1">
+                    {(['existing', 'new'] as const).map((m) => (
+                      <button key={m} type="button" onClick={() => setUniversityMode(m)}
+                        className={`px-2 py-0.5 rounded text-xs ${universityMode === m ? 'bg-accent text-white' : 'text-text-muted hover:text-accent'}`}>
+                        {m === 'existing' ? t('existingUniversity') : t('newUniversity')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {universityMode === 'existing' ? (
+                  <select value={universityId} onChange={(e) => setUniversityId(e.target.value)} className="w-full">
+                    <option value="">{t('selectUniversity')}</option>
+                    {universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    <input value={newUniversityName} onChange={(e) => setNewUniversityName(e.target.value)} placeholder={t('universityNamePlaceholder')} className="col-span-2" />
+                    <input value={newUniversityCity} onChange={(e) => setNewUniversityCity(e.target.value)} placeholder={t('city')} />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Verified info */}
             <div className="flex gap-4 text-xs text-text-muted">
               <span className="flex items-center gap-1"><Check size={12} className="text-green-400" /> {email}</span>
@@ -338,7 +419,7 @@ export default function AddUserModal({ onClose, onCreated }: Props) {
             <div className="flex justify-end gap-3">
               <button onClick={onClose} className="px-5 py-2 rounded-lg border border-dark-border text-sm hover:bg-dark-hover">{t('cancel')}</button>
               <button onClick={handleCreate}
-                disabled={loading || !lastName || !firstName || password.length < 8 || !selectedRole}
+                disabled={loading || !lastName || !firstName || password.length < 8 || !selectedRole || !universityReady}
                 className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-sm font-medium disabled:opacity-50">
                 {loading ? t('saving') : t('addUser')}
               </button>

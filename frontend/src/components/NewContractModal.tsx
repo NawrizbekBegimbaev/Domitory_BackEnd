@@ -4,6 +4,7 @@ import { residentsApi, buildingsApi, floorsApi, roomsApi, contractsApi, assignme
 import type { Resident, Building, Floor, Room, PaginatedResponse } from '../types'
 import { formatMoney } from '../utils/format'
 import { useTranslation } from '../i18n'
+import EligibilityHint, { askOverride } from './EligibilityHint'
 
 interface Props {
   onClose: () => void
@@ -102,15 +103,18 @@ export default function NewContractModal({ onClose, onCreated }: Props) {
     if (!createdContractId || !roomId) return
     setLoading(true)
     try {
-      await assignmentsApi.create({
-        contract: createdContractId,
-        resident: residentId,
-        room: roomId,
-      })
+      const payload: Record<string, unknown> = { contract: createdContractId, resident: residentId, room: roomId }
+      try {
+        await assignmentsApi.create(payload)
+      } catch (err: any) {
+        const reason = askOverride(err, t)
+        if (!reason) throw err
+        await assignmentsApi.create({ ...payload, override_reason: reason })
+      }
       onCreated()
       onClose()
-    } catch {
-      alert(t('errorAssigningRoom'))
+    } catch (err: any) {
+      alert(err.response?.data?.error?.message || t('errorAssigningRoom'))
     } finally {
       setLoading(false)
     }
@@ -247,6 +251,7 @@ export default function NewContractModal({ onClose, onCreated }: Props) {
                 </div>
               </div>
             )}
+            <EligibilityHint residentId={residentId} roomId={roomId} />
 
             <div className="flex justify-between gap-3 mt-6">
               <button onClick={handleSkipRoom} className="px-6 py-2.5 rounded-lg border border-dark-border text-sm hover:bg-dark-hover text-text-muted">

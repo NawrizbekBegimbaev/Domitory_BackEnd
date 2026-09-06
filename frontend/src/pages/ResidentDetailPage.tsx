@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Edit, ArrowRightLeft, LogOut, Plus, Download, Trash2 } from 'lucide-react'
-import { residentsApi, chargesApi, paymentsApi, assignmentsApi, stayRecordsApi, contractsApi } from '../api/endpoints'
-import type { Resident, Charge, Payment, Guardian, ResidentDocument, RoomAssignment, StayRecord, Contract, BalanceResponse, PaginatedResponse } from '../types'
+import { residentsApi, chargesApi, paymentsApi, assignmentsApi, stayRecordsApi, contractsApi, admissionApi } from '../api/endpoints'
+import type { Resident, Charge, Payment, Guardian, ResidentDocument, RoomAssignment, StayRecord, Contract, BalanceResponse, PaginatedResponse, EligibleRoom } from '../types'
 import { formatMoney, formatDate, formatDateTime, statusColors, getInitials, getStatusLabel } from '../utils/format'
 import { useTranslation } from '../i18n'
+import { countryName } from '../utils/countries'
 import EditResidentModal from '../components/EditResidentModal'
 import TransferResidentModal from '../components/TransferResidentModal'
 import EvictResidentModal from '../components/EvictResidentModal'
@@ -26,6 +27,7 @@ export default function ResidentDetailPage() {
   const [stayRecords, setStayRecords] = useState<StayRecord[]>([])
   const [assignments, setAssignments] = useState<RoomAssignment[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [eligibleRooms, setEligibleRooms] = useState<EligibleRoom[] | null>(null)
   const [activeTab, setActiveTab] = useState<typeof tabKeys[number]>('tabFinance')
   const [showEditModal, setShowEditModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
@@ -78,6 +80,7 @@ export default function ResidentDetailPage() {
     }).catch(() => {})
     assignmentsApi.list({ resident: id }).then((r) => setAssignments((r.data as PaginatedResponse<RoomAssignment>).results)).catch(() => {})
     contractsApi.list({ resident: id }).then((r) => setContracts((r.data as PaginatedResponse<Contract>).results)).catch(() => {})
+    admissionApi.eligibleRooms(id).then((r) => setEligibleRooms(r.data)).catch(() => setEligibleRooms(null))
   }
 
   useEffect(() => { reload() }, [id])
@@ -117,6 +120,7 @@ export default function ResidentDetailPage() {
           <div className="text-sm text-text-muted mt-1">
             {resident.created_at && `${t('residentSince')} ${formatDate(resident.created_at)}`}
             <span className="mx-2">·</span>ID: {resident.university_id}
+            <span className="mx-2">·</span>{countryName(resident.citizenship)}{resident.is_foreign && <span className="ml-1 text-accent">({t('foreignStudent')})</span>}
             {activeAssignment && <><span className="mx-2">·</span>{t('room')}: {activeAssignment.room_number || activeAssignment.room}</>}
           </div>
         </div>
@@ -380,6 +384,24 @@ export default function ResidentDetailPage() {
                 </div>
                 <span className="text-green-400 text-sm flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> {t('active')}</span>
               </div>
+            </div>
+          )}
+
+          {!activeAssignment && eligibleRooms && (
+            <div className="bg-dark-card border border-dark-border rounded-xl p-5">
+              <h3 className="font-semibold mb-1">{t('admEligibleRooms')}</h3>
+              <p className="text-xs text-text-muted mb-3">{t('admEligibleRoomsHint')}</p>
+              {eligibleRooms.length === 0 ? (
+                <div className="text-sm text-text-muted">{t('admNoEligibleRooms')}</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {eligibleRooms.map((r) => (
+                    <span key={r.id} className="text-xs px-2.5 py-1 rounded-full border border-dark-border text-text-secondary">
+                      {r.building_name} · {r.floor_number} {t('floorLabel')} · <b className="text-accent">{r.room_number}</b> ({r.capacity - r.current_occupancy}/{r.capacity})
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

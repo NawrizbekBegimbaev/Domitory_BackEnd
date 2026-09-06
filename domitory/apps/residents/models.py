@@ -7,10 +7,15 @@ from common.validators import phone_validator
 
 class Faculty(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField('Название', max_length=150, unique=True)
+    university = models.ForeignKey(
+        'universities.University', on_delete=models.CASCADE,
+        related_name='faculties', verbose_name='Университет',
+    )
+    name = models.CharField('Название', max_length=150)
 
     class Meta:
         ordering = ['name']
+        unique_together = [('university', 'name')]
         verbose_name = 'Факультет'
         verbose_name_plural = 'Факультеты'
 
@@ -31,14 +36,20 @@ class Resident(TimestampMixin):
         SUSPENDED = 'suspended', 'Приостановлен'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    university = models.ForeignKey(
+        'universities.University', on_delete=models.PROTECT,
+        related_name='residents', verbose_name='Университет',
+    )
     full_name = models.CharField('ФИО', max_length=150)
     birth_date = models.DateField('Дата рождения', null=True, blank=True)
     gender = models.CharField('Пол', max_length=10, choices=Gender.choices)
     phone_number = models.CharField('Телефон', max_length=17, blank=True, validators=[phone_validator])
     email = models.EmailField('Email', blank=True)
-    university_id = models.CharField('Студ. билет', max_length=50)
+    student_number = models.CharField('Студ. билет', max_length=50)
     faculty = models.CharField('Факультет', max_length=150, blank=True)
     course = models.PositiveIntegerField('Курс', null=True, blank=True)
+    # ISO 3166-1 alpha-2. Foreign student = any country other than HOME_COUNTRY.
+    citizenship = models.CharField('Гражданство', max_length=2, default='UZ')
     photo = models.ImageField('Фото', upload_to='residents/photos/', blank=True)
     status = models.CharField('Статус', max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.TextField('Заметки', blank=True)
@@ -49,8 +60,14 @@ class Resident(TimestampMixin):
         verbose_name = 'Жилец'
         verbose_name_plural = 'Жильцы'
 
+    HOME_COUNTRY = 'UZ'
+
     def __str__(self):
         return self.full_name
+
+    @property
+    def is_foreign(self):
+        return (self.citizenship or self.HOME_COUNTRY).upper() != self.HOME_COUNTRY
 
 
 class Guardian(TimestampMixin):

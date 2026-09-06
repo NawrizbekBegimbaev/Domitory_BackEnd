@@ -4,6 +4,7 @@ import { Plus, MapPin, X } from 'lucide-react'
 import { buildingsApi, floorsApi, roomsApi } from '../api/endpoints'
 import type { Building, Floor, Room, PaginatedResponse } from '../types'
 import { useTranslation } from '../i18n'
+import { useCurrentUser, isReadOnly } from '../hooks/useCurrentUser'
 
 const genderColors: Record<string, string> = {
   male_only: 'bg-blue-500/20 text-blue-400',
@@ -22,6 +23,7 @@ interface BuildingStats {
 export default function BuildingsPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const readOnly = isReadOnly(useCurrentUser())
   const [stats, setStats] = useState<BuildingStats[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editBuilding, setEditBuilding] = useState<Building | null>(null)
@@ -84,12 +86,14 @@ export default function BuildingsPage() {
           <h1 className="text-2xl font-bold">{t('buildingsTitle')}</h1>
           <p className="text-text-muted text-sm">{t('buildingsDesc')}</p>
         </div>
-        <button
-          onClick={() => { setEditBuilding(null); setShowModal(true) }}
-          className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} /> {t('addBuilding')}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => { setEditBuilding(null); setShowModal(true) }}
+            className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+          >
+            <Plus size={16} /> {t('addBuilding')}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-6">

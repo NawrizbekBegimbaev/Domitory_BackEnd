@@ -19,7 +19,7 @@ export default function Layout({ user, onLogout }: Props) {
         <button onClick={() => setSidebarOpen(true)} className="text-text-muted hover:text-accent">
           <Menu size={24} />
         </button>
-        <span className="ml-3 font-bold text-accent tracking-wide text-sm">EDormitory <span className="font-normal text-text-muted text-[10px]">by Naurizbek</span></span>
+        <span className="ml-3 font-bold text-accent tracking-wide text-sm">EDormitory</span>
       </div>
 
       {/* Overlay */}

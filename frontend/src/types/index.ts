@@ -1,11 +1,45 @@
+export interface University {
+  id: string
+  name: string
+  short_name: string
+  city: string
+  address?: string
+  is_active?: boolean
+}
+
+export interface UniversityStats {
+  university_id: string
+  university_name: string
+  short_name: string
+  city: string
+  buildings: number
+  total_residents: number
+  free_beds: number
+  total_capacity: number
+  total_occupancy: number
+  occupancy_percentage: number
+  total_debt: string
+  collected_this_month: string
+  collected_this_quarter: string
+  collected_this_year: string
+}
+
+export interface UniversitiesOverview {
+  universities: UniversityStats[]
+  totals: Omit<UniversityStats, 'university_id' | 'university_name' | 'short_name' | 'city' | 'buildings'> & { universities: number }
+}
+
 export interface User {
   id: string
   email: string
   full_name: string
   role: { id: number; name: string; description: string } | null
+  university: University | null
   phone_number: string
   photo: string | null
   is_active: boolean
+  passport_number?: string
+  position?: string
   date_joined: string
 }
 
@@ -15,7 +49,8 @@ export interface Building {
   address: string
   gender_policy: string
   is_active: boolean
-  organization: string
+  university: string
+  university_name?: string
   created_at: string
   updated_at: string
 }
@@ -54,12 +89,16 @@ export interface Resident {
   phone_number: string
   email: string
   university_id: string
+  student_id?: string
   faculty: string
   course: number | null
+  citizenship: string
+  is_foreign?: boolean
   photo: string | null
   status: string
   notes: string
-  organization: string
+  university: string
+  university_name?: string
   guardians?: Guardian[]
   documents?: ResidentDocument[]
   created_at?: string
@@ -204,6 +243,18 @@ export interface SummaryReport {
   free_beds: number
   total_debt: string
   collected_this_month: string
+  collected_this_quarter: string
+  collected_this_year: string
+}
+
+export interface PaymentsReport {
+  payments: Payment[]
+  total: string
+  count: number
+  date_from: string | null
+  date_to: string | null
+  period: string | null
+  by_method: { payment_method: string; total: string; count: number }[]
 }
 
 export interface OccupancyFloor {
@@ -228,7 +279,7 @@ export interface OccupancyBuilding {
 export interface Debtor {
   id: string
   full_name: string
-  university_id: string
+  student_id: string
   faculty: string
   phone_number: string
   total_charged: string
@@ -246,6 +297,103 @@ export interface AccessEvent {
   device_name: string
   card_number: string
   created_at: string
+}
+
+export interface Campaign {
+  id: string
+  university: string
+  university_name?: string
+  name: string
+  academic_year: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+  enforce: boolean
+  buildings_sequential: boolean
+  floors_sequential: boolean
+  hold_hours: number
+  windows_count: number
+  rules_count: number
+}
+
+export interface BookingWindow {
+  id: string
+  campaign: string
+  name: string
+  opens_at: string
+  closes_at: string | null
+  courses: number[]
+  faculties: string[]
+  foreign_policy: string
+  criteria_display: string
+}
+
+export interface PlacementRule {
+  id: string
+  campaign: string
+  building: string | null
+  floor: string | null
+  room: string | null
+  level: string
+  scope_display: string
+  courses: number[]
+  faculties: string[]
+  foreign_policy: string
+  criteria_display: string
+  note: string
+}
+
+export interface BuildingOrder {
+  id: string
+  campaign: string
+  building: string
+  building_name: string
+  priority: number
+  floor_direction: 'asc' | 'desc' | 'custom'
+  floor_order: number[]
+}
+
+export interface Booking {
+  id: string
+  campaign: string
+  resident: string
+  resident_name: string
+  room: string
+  room_number: string
+  floor_number: number
+  building_name: string
+  beds: number
+  status: string
+  expires_at: string
+  created_by: string | null
+  created_by_name: string | null
+  assignment: string | null
+  override_reason: string
+  note: string
+  created_at: string
+}
+
+export interface Eligibility {
+  ok: boolean
+  reasons: string[]
+  codes: string[]
+  enforced: boolean
+  can_override: boolean
+}
+
+export interface EligibleRoom {
+  id: string
+  room_number: string
+  floor: string
+  floor_number: number
+  building_id: string
+  building_name: string
+  capacity: number
+  current_occupancy: number
+  monthly_price: string
+  gender_policy: string
+  ok: boolean
+  reasons: string[]
 }
 
 export interface PaginatedResponse<T> {

@@ -14,16 +14,25 @@ from apps.residents.serializers import (
     ResidentDocumentSerializer,
     ResidentListSerializer,
 )
+from common.tenancy import UniversityScopedMixin, scope_queryset, university_for_create
 
 
-class ResidentViewSet(viewsets.ModelViewSet):
+class ResidentViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSecurityStaff]
     filterset_class = ResidentFilter
-    search_fields = ['full_name', 'university_id', 'phone_number']
+    search_fields = ['full_name', 'student_number', 'phone_number']
     ordering_fields = ['full_name', 'created_at', 'faculty', 'course']
+    university_lookup = 'university'
 
     def get_queryset(self):
-        return Resident.objects.all()
+        return self.scope(Resident.objects.select_related('university').all())
+
+    def perform_create(self, serializer):
+        explicit = self.request.data.get('university')
+        if explicit:
+            from apps.universities.models import University
+            explicit = University.objects.filter(pk=explicit).first()
+        serializer.save(university=university_for_create(self.request, explicit))
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -150,46 +159,64 @@ class ResidentViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            new_room = Room.objects.get(pk=new_room_id)
+            new_room = scope_queryset(Room.objects.select_related('floor__building'), request, 'floor__building__university').get(pk=new_room_id)
         except Room.DoesNotExist:
             return Response(
                 {'error': {'code': 'NotFound', 'message': 'Room not found', 'details': {}}},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        new_assignment = RoomAssignmentService.transfer_resident(
-            active_assignment, new_room, user=request.user,
-        )
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            new_assignment = RoomAssignmentService.transfer_resident(
+                active_assignment, new_room, user=request.user,
+                override_reason=request.data.get('override_reason') or None,
+            )
+        except DjangoValidationError as e:
+            return Response(
+                {'error': {'code': 'ValidationError', 'message': str(e.message if hasattr(e, 'message') else e.messages[0]), 'details': {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(
             RoomAssignmentListSerializer(new_assignment).data,
             status=status.HTTP_201_CREATED,
         )
 
 
-class GuardianViewSet(viewsets.ModelViewSet):
+class GuardianViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsDormManager]
     serializer_class = GuardianSerializer
+    university_lookup = 'resident__university'
 
     def get_queryset(self):
-        return Guardian.objects.select_related('resident').all()
+        return self.scope(Guardian.objects.select_related('resident').all())
 
 
-class ResidentDocumentViewSet(viewsets.ModelViewSet):
+class ResidentDocumentViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsDormManager]
     serializer_class = ResidentDocumentSerializer
+    university_lookup = 'resident__university'
 
     def get_queryset(self):
-        return ResidentDocument.objects.select_related('resident').all()
+        return self.scope(ResidentDocument.objects.select_related('resident').all())
 
 
-class FacultyViewSet(viewsets.ModelViewSet):
+class FacultyViewSet(UniversityScopedMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsSecurityStaff]
     serializer_class = FacultySerializer
+    university_lookup = 'university'
 
     def get_queryset(self):
-        return Faculty.objects.all()
+        return self.scope(Faculty.objects.all())
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAuthenticated(), IsDormManager()]
         return super().get_permissions()
+
+    def perform_create(self, serializer):
+        explicit = self.request.data.get('university')
+        if explicit:
+            from apps.universities.models import University
+            explicit = University.objects.filter(pk=explicit).first()
+        serializer.save(university=university_for_create(self.request, explicit))

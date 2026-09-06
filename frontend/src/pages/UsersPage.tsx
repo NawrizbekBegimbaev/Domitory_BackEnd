@@ -23,6 +23,7 @@ export default function UsersPage() {
     dorm_manager: t('roleDormManager'),
     accountant: t('roleAccountant'),
     security_staff: t('roleSecurityStaff'),
+    ministry: t('roleMinistry'),
   }
 
   const reload = () => {
@@ -78,6 +79,7 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm text-accent">{u.role ? roleLabels[u.role.name] || u.role.name : '—'}</span>
+                      {u.university && <div className="text-xs text-text-muted">{u.university.short_name || u.university.name}</div>}
                     </td>
                     <td className="py-3 px-4 text-sm text-text-secondary">{u.phone_number || '—'}</td>
                     <td className="py-3 px-4">
@@ -151,6 +153,24 @@ export default function UsersPage() {
                   <span className="text-text-muted">{t('phone')}</span>
                   <span>{selected.phone_number || '—'}</span>
                 </div>
+                {selected.university && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">{t('university')}</span>
+                    <span className="text-right">{selected.university.name}</span>
+                  </div>
+                )}
+                {selected.position && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">{t('position')}</span>
+                    <span className="text-right">{selected.position}</span>
+                  </div>
+                )}
+                {selected.passport_number && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">{t('passportNumber')}</span>
+                    <span>{selected.passport_number}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-text-muted">{t('startDate')}</span>
                   <span>{formatDate(selected.date_joined)}</span>

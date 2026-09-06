@@ -7,10 +7,12 @@ import DataTable from '../components/DataTable'
 import Pagination from '../components/Pagination'
 import { formatMoney, formatDate, getStatusLabel } from '../utils/format'
 import { useTranslation } from '../i18n'
+import { useCurrentUser, isReadOnly } from '../hooks/useCurrentUser'
 
 export default function FinancePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const readOnly = isReadOnly(useCurrentUser())
   const [data, setData] = useState<PaginatedResponse<Payment>>({ count: 0, next: null, previous: null, results: [] })
   const [page, setPage] = useState(1)
 
@@ -72,12 +74,14 @@ export default function FinancePage() {
           <h1 className="text-2xl font-bold">{t('financeTitle')}</h1>
           <p className="text-text-muted text-sm">{t('financeDesc')}</p>
         </div>
-        <button
-          onClick={() => navigate('/finance/payment/new')}
-          className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
-        >
-          <Plus size={16} /> {t('makePayment')}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => navigate('/finance/payment/new')}
+            className="bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors"
+          >
+            <Plus size={16} /> {t('makePayment')}
+          </button>
+        )}
       </div>
 
       <div className="bg-dark-card border border-dark-border rounded-xl">
